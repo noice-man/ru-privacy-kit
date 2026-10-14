@@ -1,0 +1,6 @@
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+/wp-plugin-package/
+/ru-privacy-kit-v*.zip
