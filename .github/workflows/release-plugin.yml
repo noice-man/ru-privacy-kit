@@ -1,0 +1,77 @@
+name: Release RU Privacy Kit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ru-privacy-kit.php'
+      - 'includes/**'
+      - 'assets/**'
+      - 'vendor/**'
+      - 'readme.txt'
+      - '.github/workflows/release-plugin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate version and source
+        id: version
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="$(sed -nE 's/^ \* Version: ([0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+)[[:space:]]*$/\1/p' ru-privacy-kit.php | head -n1)"
+          test -n "$VERSION"
+          grep -Fqx "Stable tag: $VERSION" readme.txt
+          test -f vendor/wpr-updates-client.php
+          grep -Fq 'Update URI: https://xn----ctbgf6biedka.xn--p1ai/plugins/ru-privacy-kit/' ru-privacy-kit.php
+          find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+          TAG="v$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Package ZIP and publish Public Beta
+        if: steps.version.outputs.publish == 'true'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          ROOT="/tmp/rupk-package/ru-privacy-kit"
+          mkdir -p "$ROOT"
+          for f in ru-privacy-kit.php uninstall.php readme.txt README.md; do
+            test -f "$f" && cp "$f" "$ROOT/"
+          done
+          for d in assets includes vendor; do
+            test -d "$d" && cp -a "$d" "$ROOT/"
+          done
+          test -f "$ROOT/ru-privacy-kit.php"
+          cd /tmp/rupk-package
+          ZIP="$GITHUB_WORKSPACE/ru-privacy-kit-v$VERSION.zip"
+          zip -qr "$ZIP" ru-privacy-kit
+          unzip -tq "$ZIP"
+          cd "$GITHUB_WORKSPACE"
+          awk -v v="$VERSION" '
+            $0 == "= " v " =" {capture=1; next}
+            capture && /^= [0-9]+\.[0-9]+\.[0-9]+/ {exit}
+            capture {print}
+          ' readme.txt > /tmp/rupk-release-notes.md
+          test -s /tmp/rupk-release-notes.md
+          # WPR Update Hub v1.3.8 uses /releases/latest (excluding GitHub prereleases).
+          # Public Beta is conveyed by version/title/notes/card; GitHub prerelease flag must remain false.
+          gh release create "v$VERSION" "$ZIP" --target "$GITHUB_SHA" \
+            --title "RU Privacy Kit $VERSION — Public Beta" \
+            --notes-file /tmp/rupk-release-notes.md --latest
