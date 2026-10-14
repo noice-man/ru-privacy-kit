@@ -83,7 +83,6 @@ final class RUPK_Front {
         echo '<footer class="rupk-modal-actions"><button type="button" data-rupk="deny">Отклонить необязательные</button><button type="button" class="rupk-primary" data-rupk="save">Сохранить выбор</button></footer></section>';
         if ($d['floating_link']) { echo '<button type="button" class="rupk-floating rupk-open-preferences" aria-label="Настройки cookie">⚙ <span>Настройки cookie</span></button>'; }
         echo '</div>';
-        if (!$d['floating_link'] && $show) { echo '<button class="rupk-open-preferences rupk-footer-link" type="button">Настройки cookie</button>'; }
         // No consent banner for a site configured with no optional services.
         echo '<script>window.RUPK_SHOW_BANNER='.($show?'true':'false').';</script>';
     }

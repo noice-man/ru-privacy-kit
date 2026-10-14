@@ -3,7 +3,7 @@ Contributors: wpr
 Tags: cookie, consent, privacy, russian, legal
 Requires at least: 6.6
 Requires PHP: 8.1
-Stable tag: 1.0.0-beta.7
+Stable tag: 1.0.0-beta.8
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,12 @@ RU Privacy Kit помогает подготовить и опубликоват
 5. Проверьте cookie-баннер и работу счётчиков в отдельном профиле браузера, включая отказ и отзыв согласия.
 
 == Changelog ==
+
+= 1.0.0-beta.8 =
+* При отключении постоянной кнопки cookie больше не выводится неоформленная ссылка после футера.
+* Повторно открыть настройки можно по ссылке в политике cookie или через шорткод [rupk_cookie_settings].
+* Уточнена подсказка соответствующего параметра в административной панели.
+
 
 = 1.0.0-beta.7 =
 * Исправлено позиционирование плавающего cookie-баннера в темах с transform и overflow.

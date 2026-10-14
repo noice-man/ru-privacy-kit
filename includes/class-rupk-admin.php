@@ -248,7 +248,7 @@ final class RUPK_Admin {
         echo '</div>';
         self::field('radius','Скругление в px',$c['design']['radius'],'number');
         self::field('retention_days','Срок сохранения выбора (дней)',$c['design']['retention_days'],'number');
-        self::checkbox('floating_link','Показывать постоянную кнопку настроек cookie',$c['design']['floating_link']);
+        self::checkbox('floating_link','Показывать постоянную кнопку «Настройки cookie»',$c['design']['floating_link'],'Если выключено, плагин не выводит дополнительную ссылку внизу сайта. Посетитель сможет изменить выбор через ссылку в политике cookie. При необходимости разместите шорткод [rupk_cookie_settings] в любом подходящем месте сайта.');
         echo '<h3>Живой предпросмотр</h3><p>Шаблон автоматически обновляется при смене оформления. После сохранения дополнительно проверьте баннер на реальном сайте.</p>';
         echo '<p class="rupk-preview-switch"><button type="button" class="button button-primary" data-rupk-preview-size="desktop">Компьютер</button> <button type="button" class="button" data-rupk-preview-size="mobile">Телефон</button></p>';
         echo '<div class="rupk-preview-shell"><div class="rupk-preview-stage"><div class="rupk-preview-placeholder"><div class="rupk-preview-header"></div><div class="rupk-preview-lines"></div></div>';

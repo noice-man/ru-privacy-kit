@@ -3,7 +3,7 @@
  * Plugin Name: RU Privacy Kit
  * Plugin URI: https://ворд-пресс.рф/
  * Description: Русскоязычный мастер политик, cookie-баннер и управление согласием и аналитикой.
- * Version: 1.0.0-beta.7
+ * Version: 1.0.0-beta.8
  * Requires at least: 6.6
  * Requires PHP: 8.1
  * Author: ворд-пресс.рф
@@ -12,7 +12,7 @@
  * Text Domain: ru-privacy-kit
  */
 if (!defined('ABSPATH')) { exit; }
-define('RUPK_VERSION', '1.0.0-beta.7');
+define('RUPK_VERSION', '1.0.0-beta.8');
 define('RUPK_DIR', plugin_dir_path(__FILE__));
 define('RUPK_URL', plugin_dir_url(__FILE__));
 require_once RUPK_DIR . 'includes/class-rupk-core.php';
