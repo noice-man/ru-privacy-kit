@@ -1,0 +1,173 @@
+.rupk-admin {max-width:1220px;color:#223247;font-size:14px;}
+.rupk-admin *{box-sizing:border-box}
+.rupk-admin-head{display:flex;justify-content:space-between;align-items:center;padding:18px 0 20px;gap:16px;}
+.rupk-admin-head h1{font-size:29px;line-height:1.3;font-weight:730;color:#142339;margin:0}
+.rupk-admin-head p{color:#5b6878;font-size:14px;margin:6px 0 0}
+.rupk-version{color:#738297;background:#f3f6fa;padding:6px 10px;border-radius:30px;font-size:12px;white-space:nowrap;}
+.rupk-steps{display:flex;flex-wrap:wrap;gap:5px;margin:2px 0 18px;}
+.rupk-steps a{padding:10px 12px;background:#eef2f7;color:#5c6c80;text-decoration:none;border-radius:9px;font-size:12px;font-weight:650;}
+.rupk-steps a.current{background:#275eda;color:white;}
+.rupk-panel{background:#fff;border:1px solid #dae2ea;border-radius:15px;padding:24px;margin:16px 0;box-shadow:0 3px 15px rgba(28,44,69,.025)}
+.rupk-panel h2{font-size:20px;color:#16283c;margin:0 0 12px}
+.rupk-panel h3{font-size:16px;color:#203149;margin:24px 0 10px}
+.rupk-panel>p{max-width:860px;color:#59687c;line-height:1.55}
+.rupk-field{display:flex;flex-direction:column;gap:7px;max-width:720px;margin:14px 0;color:#33445a;font-weight:600}
+.rupk-field em{color:#ca3f3f}
+.rupk-field input,.rupk-field textarea,.rupk-field select{width:100%;max-width:none;padding:9px 12px;min-height:41px;border:1px solid #ced8e4;border-radius:8px;font-size:14px;background:#fff;color:#1b2a3b}
+.rupk-field textarea{min-height:86px}
+.rupk-field small{font-weight:400;color:#718097;font-size:12px}
+.rupk-check{display:flex;gap:11px;margin:12px 0;align-items:flex-start;padding:10px 12px;border:1px solid #e6ebf1;border-radius:9px;max-width:750px;}
+.rupk-check>input{margin-top:4px}
+.rupk-check small{display:block;color:#728197;font-size:12px;font-weight:400;margin-top:4px;}
+.rupk-actions{display:flex;gap:10px;align-items:center;margin-top:22px;border-top:1px solid #e4e9ef;padding-top:19px;}
+.rupk-admin .button-primary{background:#285fdb;border-color:#285fdb;}
+.rupk-mode{display:flex;align-items:flex-start;gap:12px;max-width:850px;padding:16px;border:1px solid #d8e1ec;border-radius:12px;margin:12px 0;cursor:pointer;}
+.rupk-mode:has(input:checked){border-color:#326bea;background:#f1f6ff;box-shadow:0 0 0 1px #326bea inset;}
+.rupk-mode input{margin-top:4px}
+.rupk-mode strong{display:block;font-size:15px;color:#142c50}
+.rupk-mode small{display:block;margin-top:5px;color:#53647c;line-height:1.55;font-size:13px}
+.rupk-subpanel{max-width:860px;border:1px solid #d9e2ee;padding:15px;border-radius:10px;margin:14px 0;}
+.rupk-subpanel legend{font-weight:700;color:#253951}
+.rupk-layout-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:20px 0;}
+.rupk-layout{border:1px solid #dee5ee;background:#fafcfe;padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:10px;cursor:pointer;text-align:center;font-size:12px;}
+.rupk-layout:has(input:checked){border:2px solid #3166df;background:#eff5ff;}
+.rupk-schematic{background:#e8eef6;border:1px solid #d9e3ef;border-radius:6px;height:70px;position:relative;display:block;overflow:hidden}
+.rupk-schematic i{position:absolute;background:#2563eb;border:5px solid white;border-radius:4px;box-shadow:0 2px 8px #8293ad;}
+.rupk-schematic-bottom i{bottom:0;left:0;right:0;height:25px}
+.rupk-schematic-top i{top:0;left:0;right:0;height:25px}
+.rupk-schematic-card i{right:4px;bottom:4px;width:75px;height:37px}
+.rupk-schematic-modal i{left:20%;top:20%;right:20%;bottom:20%}
+.rupk-schematic-minimal i{left:4px;bottom:4px;width:65px;height:26px}
+.rupk-field-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;max-width:880px}
+.rupk-warnings{border-left:4px solid #dda123;}
+.rupk-warnings ul{margin:0 0 0 20px;list-style:disc;}
+.rupk-warnings li{line-height:1.6;color:#6a4c15}
+.rupk-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0;}
+.rupk-tile{display:flex;flex-direction:column;gap:12px;padding:22px;background:#fff;border:1px solid #d9e3ec;border-radius:14px;text-decoration:none;}
+.rupk-tile small{color:#69788a;font-size:13px;}.rupk-tile strong{color:#16355d;font-size:20px}
+.rupk-inline{display:inline-flex;gap:5px;align-items:center;margin:8px;}
+.rupk-inline select{max-width:240px;}
+@media(max-width:900px){.rupk-layout-grid{grid-template-columns:repeat(3,1fr)}.rupk-cards{grid-template-columns:repeat(2,1fr)}.rupk-field-row{grid-template-columns:1fr}}
+@media(max-width:600px){.rupk-layout-grid{grid-template-columns:repeat(2,1fr)}.rupk-admin-head{flex-direction:column;align-items:flex-start}.rupk-panel{padding:16px}}
+
+.rupk-preview-shell { background:#e8eef5;padding:18px;border-radius:14px;max-width:980px;margin:15px 0;overflow:hidden; }
+.rupk-preview-stage { max-width:100%;height:360px;position:relative;background:#f7f9fc;overflow:hidden;border:1px solid #cbd6e3;border-radius:9px; }
+.rupk-preview-shell.is-mobile .rupk-preview-stage{max-width:390px;margin:auto;}
+.rupk-preview-placeholder{padding:20px;}
+.rupk-preview-header{height:32px;background:linear-gradient(90deg,#e0e8f2 20%,#ccd7e4 20%,#ccd7e4 24%,#e0e8f2 24%);border-radius:7px;}
+.rupk-preview-lines{height:90px;margin-top:22px;max-width:60%;background:repeating-linear-gradient(to bottom,#e4eaf3 0,#e4eaf3 9px,transparent 9px,transparent 22px);}
+.rupk-preview-shell #rupk-root .rupk-banner{position:absolute;transform:none;max-height:calc(100% - 10px);}
+.rupk-preview-shell #rupk-root.rupk-layout-modal .rupk-banner{left:50%;top:50%;transform:translate(-50%,-50%);width:min(500px,calc(100% - 18px));}
+.rupk-preview-shell #rupk-root.rupk-layout-card .rupk-banner {max-width:450px;right:10px;}
+.rupk-preview-shell #rupk-root.rupk-layout-bottom .rupk-banner,.rupk-preview-shell #rupk-root.rupk-layout-top .rupk-banner {left:0;right:0;}
+.rupk-preview-shell.is-mobile #rupk-root .rupk-banner {left:8px;right:8px;bottom:8px;top:auto;max-height:calc(100% - 12px);}
+.rupk-preview-shell.is-mobile #rupk-root.rupk-layout-modal .rupk-banner {left:50%;top:50%;right:auto;transform:translate(-50%,-50%);}
+.rupk-preview-shell.is-mobile #rupk-root.rupk-layout-top .rupk-banner {top:0;bottom:auto;left:0;right:0;}
+.rupk-preview-shell.is-mobile #rupk-root .rupk-banner .rupk-actions button{flex:1 1 95px;}
+.rupk-preview-shell #rupk-root{font-family:system-ui,sans-serif;}
+.rupk-preview-switch{display:flex;gap:7px;}
+.rupk-document-diff{max-height:320px;overflow:auto;white-space:normal;margin:10px 0;}
+/* MVP beta.2: guided setup and actionable readiness review. */
+.rupk-admin [hidden],.rupk-subpanel[hidden],.rupk-service-fields[hidden]{display:none!important}
+.rupk-service-group{margin:21px 0 8px}
+.rupk-service-group h3{margin:0 0 11px}
+.rupk-service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;max-width:1040px}
+.rupk-service-choice .rupk-check{height:100%;margin:0;max-width:none;background:#fafbfd}
+.rupk-service-choice .rupk-check strong{font-size:14px}
+.rupk-service-fields{margin:10px 0;padding:2px 16px;background:#f5f8fc;border-radius:10px;border:1px solid #e1e7f0;max-width:740px}
+.rupk-inventory{margin-top:24px;max-width:930px;padding:18px;border-radius:12px;background:#f8fafc;border:1px solid #e1e8f1}
+.rupk-inventory h3{margin-top:0}
+.rupk-inventory>p,.rupk-expert>p{line-height:1.65;color:#5c6d81;max-width:780px}
+.rupk-expert{margin:16px 0;padding:13px 16px;border:1px solid #dce4ee;border-radius:10px;background:#fff}
+.rupk-expert summary{font-weight:650;color:#24509a;cursor:pointer}
+.rupk-subpanel{margin:15px 0 17px;background:#fff}
+.rupk-subpanel>p.rupk-subtle{color:#617289;font-size:13px;margin-top:5px}
+.rupk-subpanel .rupk-field{max-width:100%}
+.rupk-helper,.rupk-legal-help{padding:14px 18px;background:#f2f6fc;border:1px solid #d8e5f8;border-radius:10px;line-height:1.6;max-width:880px;margin:18px 0;color:#344c68}
+.rupk-legal-help h3{margin:0 0 7px}.rupk-legal-help p{margin:0}
+.rupk-recommended{margin-left:10px;padding:3px 8px;border-radius:30px;background:#e2f4e9;color:#14733b;font-weight:650;font-size:11px;white-space:nowrap}
+.rupk-review-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:20px 0}
+.rupk-review-tile{display:flex;flex-direction:column;gap:7px;padding:15px 16px;border-radius:12px;border:1px solid #dce4ef;background:#f8fafc;min-height:110px}
+.rupk-review-tile strong{font-size:13px}.rupk-review-tile span{font-size:17px;color:#1d3048;font-weight:700}.rupk-review-tile small{color:#697d92;line-height:1.45}
+.rupk-review-ok{border-color:#c6e7d3;background:#f3fbf5}.rupk-review-bad{border-color:#eccac8;background:#fff8f7}.rupk-review-warn{border-color:#f0dfb5;background:#fffaf0}
+.rupk-review-section{margin:22px 0;padding:17px 18px;border:1px solid #dce4ed;border-radius:12px}
+.rupk-review-section h3{margin:0 0 8px}.rupk-review-section>p{color:#60758b;line-height:1.55}
+.rupk-review-items{display:flex;flex-direction:column;gap:1px}
+.rupk-review-row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:14px;border-bottom:1px solid #e8edf3;padding:13px 0}
+.rupk-review-row:last-child{border-bottom:none}
+.rupk-review-symbol{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:750;color:#9b4a22;background:#fdf0e2}
+.rupk-review-row strong{display:block;color:#24394f}.rupk-review-row p{margin:5px 0 0;font-size:13px;color:#61738b;line-height:1.5;max-width:820px}
+.rupk-review-ready{color:#216e41!important;background:#f2fbf4;border:1px solid #c6e7d3;border-radius:10px;padding:12px 16px}
+.rupk-review-advice summary{font-weight:700;cursor:pointer;color:#293f57}
+.rupk-review-advice>.rupk-review-items{margin-top:10px}
+.rupk-review-final{background:#f6f9fd;border:1px solid #dbe6f2;border-radius:12px;padding:20px;margin-top:22px}
+.rupk-review-final form{margin:0}.rupk-review-final p{max-width:860px;color:#52657d;line-height:1.6}
+@media(max-width:780px){.rupk-service-grid{grid-template-columns:1fr}.rupk-review-summary{grid-template-columns:1fr}.rupk-review-row{grid-template-columns:26px minmax(0,1fr)}.rupk-review-row .button{grid-column:2;justify-self:start}}
+
+/* beta.3 publication preflight */
+.rupk-blockers{border-left:4px solid #d84e47;background:#fffdfc}
+.rupk-blockers>h2{margin-top:0}
+.rupk-blockers>.rupk-review-items{margin:16px 0}
+.rupk-publish-pending{padding:16px 18px;border:1px solid #e6c9bb;border-radius:10px;background:#fff8f3;color:#68402d;line-height:1.55}
+.rupk-stale-confirm{padding:14px 18px;border-radius:10px;border:1px solid #e9d8ad;background:#fffaf0;margin:14px 0}
+.rupk-stale-confirm p{margin:0 0 12px;line-height:1.5}
+.rupk-outdated{margin:10px 0 4px;color:#9a5c11}
+.rupk-publish-error{margin:18px 0!important}
+.rupk-doc-ready{margin:14px 0!important}
+@media(max-width:782px){.rupk-admin .widefat td{min-width:0}.rupk-admin .rupk-inline{display:flex;flex-wrap:wrap;gap:6px}.rupk-admin .rupk-inline select{max-width:100%}}
+
+/* beta.5: beginner-friendly cookie step */
+.rupk-cookie-simple{max-width:1050px;background:#f7f9fd;padding:24px}
+.rupk-inventory-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.rupk-inventory-heading h3{font-size:19px;margin:0 0 6px;color:#172d4a}
+.rupk-inventory-heading p{margin:0;line-height:1.55;color:#526783;max-width:760px}
+.rupk-auto-mark{display:inline-block;flex:0 0 auto;padding:5px 10px;border-radius:99px;background:#e5f5ea;color:#22744a;font-weight:700;font-size:12px}
+.rupk-provider-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:17px 0}
+.rupk-provider{display:flex;align-items:flex-start;gap:10px;border:1px solid #dce5ee;border-radius:10px;padding:12px 13px;background:#fff;min-width:0}
+.rupk-provider .dashicons{color:#288350;margin-top:2px;flex:0 0 auto}
+.rupk-provider strong{display:block;color:#1c344f;font-size:14px;margin-bottom:4px}
+.rupk-provider small{display:block;color:#617188;line-height:1.5;font-size:12px;overflow-wrap:anywhere}
+.rupk-cookie-action{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:14px 16px;border:1px solid #dce5ee;border-radius:10px;background:#fff;margin:15px 0 0}
+.rupk-cookie-action strong{font-size:14px}
+.rupk-cookie-action p{color:#5f7087;margin:5px 0 0;line-height:1.5}
+.rupk-cookie-action button{flex:none;white-space:nowrap}
+.rupk-cookie-scan-status{margin-top:8px;color:#315779;line-height:1.55}
+.rupk-cookie-advanced{margin-top:15px}
+.rupk-cookie-table-wrap{overflow-x:auto;max-width:100%}
+.rupk-cookie-table{width:100%;min-width:720px}
+.rupk-cookie-table input{width:100%;max-width:220px;min-width:92px;font-size:13px}
+.rupk-cookie-table select{max-width:155px;min-width:125px;font-size:13px}
+.rupk-cookie-table th{font-size:12px}
+.rupk-cookie-table .button-link-delete{font-size:25px;cursor:pointer}
+.rupk-cookie-advanced>.rupk-check{margin-top:10px}
+.rupk-cookie-footer{margin:16px 0 0;color:#446484;font-size:13px;line-height:1.6}
+@media(max-width:780px){.rupk-provider-list{grid-template-columns:1fr}.rupk-cookie-action{align-items:flex-start;flex-direction:column}.rupk-inventory-heading{flex-direction:column}.rupk-cookie-simple{padding:15px}}
+
+
+/* beta.6 — clear ready-to-publish legal document previews */
+.rupk-document-preview{border:1px solid #dbe6f1;background:#fff;border-radius:12px;padding:12px 16px;margin:12px 0}
+.rupk-document-preview summary{cursor:pointer;font-weight:650;color:#1e426f;line-height:1.5}
+.rupk-document-body{background:#f8fafc;border:1px solid #e2e9f1;border-radius:10px;margin-top:14px;padding:22px;color:#23384e;line-height:1.65;max-height:440px;overflow:auto}
+.rupk-document-body h2{font-size:17px;margin:19px 0 10px;color:#182c44}
+.rupk-document-body p{margin:10px 0;color:#31445a}
+.rupk-document-body table{width:100%;border-collapse:collapse;display:block;overflow-x:auto}
+.rupk-document-body th,.rupk-document-body td{border:1px solid #d9e2ed;padding:7px 9px;text-align:left;vertical-align:top;font-size:13px}
+.rupk-document-body ul{list-style:disc;margin-left:20px}
+@media(max-width:780px){.rupk-document-body{padding:14px;max-height:320px}}
+
+/* beta.7: sandbox the real banner's strong positioning rules in the visual editor. */
+.rupk-preview-shell #rupk-root .rupk-banner {
+  position:absolute !important;
+  top:auto !important;
+  bottom:8px !important;
+  left:8px !important;
+  right:8px !important;
+  width:auto !important;
+  max-width:calc(100% - 16px) !important;
+  transform:none !important;
+}
+.rupk-preview-shell #rupk-root.rupk-layout-card .rupk-banner {left:auto !important;right:8px !important;width:min(420px,calc(100% - 16px)) !important;}
+.rupk-preview-shell #rupk-root.rupk-layout-minimal .rupk-banner {left:8px !important;right:auto !important;width:min(400px,calc(100% - 16px)) !important;}
+.rupk-preview-shell #rupk-root.rupk-layout-top .rupk-banner {top:0 !important;bottom:auto !important;left:0 !important;right:0 !important;width:100% !important;max-width:100% !important;}
+.rupk-preview-shell #rupk-root.rupk-layout-bottom .rupk-banner {bottom:0 !important;left:0 !important;right:0 !important;width:100% !important;max-width:100% !important;}
+.rupk-preview-shell #rupk-root.rupk-layout-modal .rupk-banner {top:50% !important;left:50% !important;bottom:auto !important;right:auto !important;width:min(480px,calc(100% - 16px)) !important;transform:translate(-50%,-50%) !important;}
