@@ -171,3 +171,6 @@
 .rupk-preview-shell #rupk-root.rupk-layout-top .rupk-banner {top:0 !important;bottom:auto !important;left:0 !important;right:0 !important;width:100% !important;max-width:100% !important;}
 .rupk-preview-shell #rupk-root.rupk-layout-bottom .rupk-banner {bottom:0 !important;left:0 !important;right:0 !important;width:100% !important;max-width:100% !important;}
 .rupk-preview-shell #rupk-root.rupk-layout-modal .rupk-banner {top:50% !important;left:50% !important;bottom:auto !important;right:auto !important;width:min(480px,calc(100% - 16px)) !important;transform:translate(-50%,-50%) !important;}
+
+.rupk-preview-shell #rupk-root.rupk-layout-notice .rupk-banner{left:8px!important;right:8px!important;width:calc(100% - 16px)!important;max-width:none!important;bottom:8px!important;top:auto!important;padding:10px 38px 10px 12px!important;}
+.rupk-preview-shell #rupk-root.rupk-layout-notice .rupk-banner p{font-size:12px!important;}

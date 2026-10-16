@@ -100,7 +100,7 @@ final class RUPK_Admin {
             echo '<h2>3. Какие инструменты подключены к сайту?</h2><p>Отметьте только то, что действительно используется. Если не знаете, проверьте установленные плагины и код темы. Сам выбор сервиса не означает, что RU Privacy Kit автоматически управляет его скриптами.</p>';
             self::form_start(3);
             $groups=[
-                'Счётчики посещаемости'=>['yandex','google','local'],
+                'Счётчики посещаемости'=>['yandex','google','sberads','local'],
                 'Управление тегами и реклама'=>['gtm','vk'],
                 'Защита и встроенный контент'=>['captcha','video','custom'],
             ];
@@ -122,6 +122,8 @@ final class RUPK_Admin {
             self::field('yandex_id','Номер счётчика Яндекс Метрики',$c['yandex_id'],'text','Найдите в интерфейсе Метрики → Настройки → Счётчик.');
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="google">';
             self::field('google_id','Идентификатор потока Google Analytics 4',$c['google_id'],'text','Значение начинается с G- (не GTM-).');
+            echo '</div><div class="rupk-service-fields" data-rupk-service-field="sberads">';
+            self::field('sberads_id','ID проекта «Статистика от SberAds»',$c['sberads_id'],'text','Номер проекта из кода счётчика в личном кабинете SberAds. Только цифры. Удалите дублирующую вставку кода из темы или GTM.');
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="gtm">';
             self::field('gtm_id','Номер контейнера Google Tag Manager',$c['gtm_id'],'text','Вид GTM-XXXXXX. В beta.2 контейнер не загружается и не блокируется плагином.');
             echo '</div>';
@@ -200,7 +202,7 @@ final class RUPK_Admin {
             echo '<label class="rupk-mode"><input type="radio" name="analytics_mode" value="'.esc_attr($key).'"'.checked($c['analytics_mode'],$key,false).'><span><strong>'.esc_html($v[0]).'</strong>'.($v[2]?'<span class="rupk-recommended">'.esc_html($v[2]).'</span>':'').'<small>'.esc_html($v[1]).'</small></span></label>';
         }
         $active=[];
-        foreach (['yandex','google'] as $id) { if (!empty($c['services'][$id])) { $active[]=$id; } }
+        foreach (['yandex','google','sberads'] as $id) { if (!empty($c['services'][$id])) { $active[]=$id; } }
         if (!$active) {
             echo '<div class="rupk-helper">Вы пока не отметили ни одного управляемого счётчика. Режим сохранится, но не изменит работу аналитики до подключения сервиса на <a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=3')).'">шаге 3</a>.</div>';
         } else {
@@ -209,6 +211,7 @@ final class RUPK_Admin {
         $hints=[
             'yandex'=>['Статистика сайта и улучшение его работы.','Обычно счётчик получает технические и сетевые данные о посещении, сведения об устройстве и браузере, просмотренных страницах и cookie-идентификаторы. Получатель — ООО «Яндекс». Проверьте фактический состав данных и ваши договорные условия.'],
             'google'=>['Статистика сайта и улучшение его работы.','Обычно счётчик получает технические и сетевые данные о посещении, событиях посещения и cookie-идентификаторы. Получатель — Google. Проверьте фактический состав данных, маршруты передачи и трансграничную передачу.'],
+            'sberads'=>['Статистика посещаемости и улучшение работы сайта.','Сведения о посещённых страницах, действиях, сетевые параметры, идентификаторы устройств и cookie в зависимости от настроек. Получатель — ООО «РА «Индекс 20» (Статистика от SberAds). Проверьте настройки проекта и использование рекламных функций.'],
         ];
         foreach ($active as $id) {
             $l=$c['legal'][$id];
@@ -238,10 +241,11 @@ final class RUPK_Admin {
         self::form_start($step);
         if ($step===7 && isset($_GET['page']) && $_GET['page']==='rupk-design') { echo '<input type="hidden" name="from_design" value="1">'; }
         echo '<div class="rupk-layout-grid">';
-        foreach (['bottom'=>'Нижняя полоса','card'=>'Плавающая карточка','modal'=>'Центральное окно','top'=>'Верхняя полоса','minimal'=>'Минималистичный'] as $id=>$label) {
+        foreach (['bottom'=>'Нижняя полоса','card'=>'Плавающая карточка','modal'=>'Центральное окно','top'=>'Верхняя полоса','minimal'=>'Минималистичный','notice'=>'Информационное уведомление (отказ в браузере)'] as $id=>$label) {
             echo '<label class="rupk-layout"><input type="radio" name="layout" value="'.esc_attr($id).'"'.checked($c['design']['layout'],$id,false).'><span class="rupk-schematic rupk-schematic-'.esc_attr($id).'"><i></i></span><strong>'.esc_html($label).'</strong></label>';
         }
         echo '</div>';
+        echo '<div class="rupk-helper"><strong>Информационное уведомление:</strong> содержит ссылку на политику cookie и совет запретить cookie в браузере; без кнопок согласия. Закрытие уведомления не является согласием. В строгом режиме счётчики продолжат ждать разрешения, которое такое уведомление не собирает. Для запуска аналитики до ответа необходимо выбрать режим «Аналитика до отказа» и отдельно подтвердить применимое правовое основание для каждого счётчика. Браузерная блокировка cookie не гарантирует прекращение всех сетевых запросов.</div>';
         self::select('theme','Тема',$c['design']['theme'],['inherit'=>'Как на сайте (наследование темы WP)','light'=>'Светлая','dark'=>'Тёмная','system'=>'Как в системе пользователя','custom'=>'Свои цвета']);
         echo '<div class="rupk-field-row">';
         foreach (['bg'=>'Фон баннера','text'=>'Цвет текста','accent'=>'Акцент кнопки'] as $k=>$name) { self::field('color['.$k.']',$name,$c['design'][$k],'text','Цвет в формате #RRGGBB; пустое поле — наследование.'); }
@@ -252,7 +256,10 @@ final class RUPK_Admin {
         echo '<h3>Живой предпросмотр</h3><p>Шаблон автоматически обновляется при смене оформления. После сохранения дополнительно проверьте баннер на реальном сайте.</p>';
         echo '<p class="rupk-preview-switch"><button type="button" class="button button-primary" data-rupk-preview-size="desktop">Компьютер</button> <button type="button" class="button" data-rupk-preview-size="mobile">Телефон</button></p>';
         echo '<div class="rupk-preview-shell"><div class="rupk-preview-stage"><div class="rupk-preview-placeholder"><div class="rupk-preview-header"></div><div class="rupk-preview-lines"></div></div>';
-        echo '<div id="rupk-root" class="rupk-layout-'.esc_attr($c['design']['layout']).' rupk-theme-'.esc_attr($c['design']['theme']).'"><section class="rupk-banner" role="region"><div class="rupk-copy"><h2>Настройки файлов cookie</h2><p>Для работы сайта мы используем необходимые cookie. С вашего разрешения мы также включаем аналитику и другие необязательные технологии.</p><p class="rupk-links"><a href="#">Политика cookie</a><a href="#">Политика ПДн</a></p></div><div class="rupk-actions"><button type="button" class="rupk-primary">Принять все</button><button type="button">Настроить</button><button type="button">Только нужные</button></div></section></div>';
+        echo '<div id="rupk-root" class="rupk-layout-'.esc_attr($c['design']['layout']).' rupk-theme-'.esc_attr($c['design']['theme']).'"><section class="rupk-banner" role="region">';
+        echo '<div class="rupk-copy"><div class="rupk-preview-regular"><h2>Настройки файлов cookie</h2><p>Для работы сайта мы используем необходимые cookie. С вашего разрешения мы также включаем аналитику и другие необязательные технологии.</p><p class="rupk-links"><a href="#">Политика cookie</a><a href="#">Политика ПДн</a></p></div>';
+        echo '<div class="rupk-preview-notice"><p>Для настройки персонализированных сервисов сайт использует <a href="#">файлы cookie</a>, а также метрические и другие аналитические системы. Вы можете запретить использование cookie в настройках вашего браузера.</p></div></div>';
+        echo '<div class="rupk-actions"><button type="button" class="rupk-primary">Принять все</button><button type="button">Настроить</button><button type="button">Только нужные</button></div><button type="button" class="rupk-notice-close" aria-label="Закрыть уведомление">×</button></section></div>';
         echo '</div></div><p class="description">Это предпросмотр внешнего вида, а не рабочая форма согласия.</p>';
         self::form_end($step,'Сохранить дизайн');
     }
@@ -502,12 +509,12 @@ final class RUPK_Admin {
         } elseif ($step===3) {
             $v['services']=[];
             foreach (RUPK_Core::registry() as $id=>$_) { $v['services'][$id]=!empty($p['services'][$id]); }
-            $v['yandex_id']=$text('yandex_id'); $v['google_id']=strtoupper($text('google_id')); $v['gtm_id']=strtoupper($text('gtm_id'));
+            $v['yandex_id']=$text('yandex_id'); $v['google_id']=strtoupper($text('google_id')); $v['sberads_id']=$text('sberads_id'); $v['gtm_id']=strtoupper($text('gtm_id'));
             $v['cookie_inventory']=sanitize_textarea_field((string)($p['cookie_inventory']??''));
             $v['inventory_reviewed']=!empty($p['inventory_reviewed']);
         } elseif ($step===4) {
             $v['analytics_mode']=$set($text('analytics_mode'),['strict','optout','advanced'],'strict');
-            foreach (['yandex','google'] as $id) {
+            foreach (['yandex','google','sberads'] as $id) {
                 // Hidden panels, strict mode, and deselected services retain previous legal details.
                 $needed=$v['analytics_mode']==='optout' || ($v['analytics_mode']==='advanced' && $id==='google');
                 if (!$needed || empty($c['services'][$id]) || !isset($p['basis'][$id])) { continue; }
@@ -528,7 +535,7 @@ final class RUPK_Admin {
         } elseif ($step===7) {
             $colors=[];
             foreach (['bg','text','accent'] as $color) { $colors[$color]=sanitize_hex_color((string)($p['color'][$color]??''))?:''; }
-            $v['design']=array_merge($colors,['layout'=>$set($text('layout'),['bottom','card','modal','top','minimal'],'bottom'), 'theme'=>$set($text('theme'),['inherit','light','dark','system','custom'],'inherit'),
+            $v['design']=array_merge($colors,['layout'=>$set($text('layout'),['bottom','card','modal','top','minimal','notice'],'bottom'), 'theme'=>$set($text('theme'),['inherit','light','dark','system','custom'],'inherit'),
                 'radius'=>max(0,min(32,absint($p['radius']??14))), 'retention_days'=>max(1,min(365,absint($p['retention_days']??180))), 'floating_link'=>!empty($p['floating_link'])]);
         } elseif ($step===9) {
             $v['log_consent']=!empty($p['log_consent']); $v['log_retention_days']=max(1,min(365,absint($p['log_retention_days']??180)));

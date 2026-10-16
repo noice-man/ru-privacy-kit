@@ -6,7 +6,7 @@
   var data = window.RUPK_EARLY && window.RUPK_EARLY.choice;
   var consent = data && data.v === cfg.revision && data.decided === true ? data : null;
   var id = consent && consent.id || makeId();
-  var started = { yandex: false, google: false };
+  var started = { yandex: false, google: false, sberads: false };
   var googleInitialized = false;
   var initialAnalytics = false;
   var root, banner, panel, lastFocused;
@@ -32,7 +32,7 @@
     return false;
   }
   function analyticsOn() {
-    return analyticEligible(cfg.services.yandex) || analyticEligible(cfg.services.google);
+    return analyticEligible(cfg.services.yandex) || analyticEligible(cfg.services.google) || analyticEligible(cfg.services.sberads);
   }
   function persist() {
     var maxAge = Math.max(1,Math.min(365,cfg.days))*86400;
@@ -91,7 +91,27 @@
     window.gtag('config',s.id, {send_page_view:true});
     started.google=true; googleInitialized=true;
   }
-  function runTrackers() { runYandex(); runGoogle(); }
+  function runSberads() {
+    var s=cfg.services.sberads;
+    if (!analyticEligible(s) || started.sberads || !/^[0-9]{1,20}$/.test(String(s.id))) return;
+    // Official SberAds (Top100/Kraken) queue pattern; no no-script pixel,
+    // because such a pixel would bypass the configured consent policy.
+    window._top100q=window._top100q || [];
+    window._top100q.push(function () {
+      // If consent has since been refused while the SDK was in flight, do not initialize.
+      if (!analyticEligible(s)) return;
+      try { window.top100Counter=new window.top100({project:String(s.id)}); } catch(e) {}
+    });
+    started.sberads=true;
+    if (!document.querySelector('script[data-rupk-sberads]')) {
+      var script=document.createElement('script');
+      script.async=true;
+      script.src='https://st.top100.ru/top100/top100.js';
+      script.setAttribute('data-rupk-sberads','1');
+      document.head.appendChild(script);
+    }
+  }
+  function runTrackers() { runYandex(); runGoogle(); runSberads(); }
   function disableTrackers() {
     var y=cfg.services.yandex, g=cfg.services.google;
     if (y && y.managed) window['disableYaCounter'+y.id]=true;
@@ -121,7 +141,7 @@
     panel.querySelector('button').focus();
   }
   function store(f,a,m) {
-    var wasTracking=started.yandex || started.google;
+    var wasTracking=started.yandex || started.google || started.sberads;
     var before=consent;
     consent={v:cfg.revision,id:id,decided:true,f:!!f,a:!!a,m:!!m,ts:Date.now()};
     persist();
@@ -166,7 +186,7 @@
     root.hidden=false; banner.hidden=true; panel.hidden=true;
     if (!consent && window.RUPK_SHOW_BANNER !== false) {
       var seen=false;
-      try { seen=cfg.mode==='optout' && window.sessionStorage.getItem('rupk_seen_'+cfg.revision)==='1'; } catch(e){}
+      try { seen=(cfg.mode==='optout' || cfg.layout==='notice') && window.sessionStorage.getItem('rupk_seen_'+cfg.revision)==='1'; } catch(e){}
       if (!seen) banner.hidden=false;
     }
     if (consent) root.classList.add('rupk-decided');
