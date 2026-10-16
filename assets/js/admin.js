@@ -11,6 +11,11 @@
       var checkbox=document.querySelector('input[name="services['+id+']"]');
       block.hidden=!!checkbox && !checkbox.checked;
     });
+    document.querySelectorAll('[data-rupk-tracker-id]').forEach(function(box){
+      var id=box.getAttribute('data-rupk-tracker-id');
+      var field=document.querySelector('input[name="services['+id+']"]');
+      box.hidden=!!field && !field.checked;
+    });
     var mode=document.querySelector('input[name="analytics_mode"]:checked');
     var active=0;
     document.querySelectorAll('[data-rupk-basis-panel]').forEach(function(fieldset){

@@ -1,7 +1,7 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 final class RUPK_Documents {
-    public const TEMPLATE_VERSION = 3;
+    public const TEMPLATE_VERSION = 4;
     public static function labels(): array { return ['cookie'=>'Политика использования файлов cookie','privacy'=>'Политика в отношении обработки персональных данных','terms'=>'Условия использования сайта','offer'=>'Публичная оферта']; }
     public static function slug(string $type): string { return ['cookie'=>'cookie-policy','privacy'=>'privacy-policy','terms'=>'terms-of-use','offer'=>'public-offer'][$type]??''; }
     public static function url(string $type,array $c): string { $id=(int)($c['documents'][$type]??0); return $id && get_post_status($id)==='publish' ? get_permalink($id) : ''; }
@@ -50,6 +50,9 @@ final class RUPK_Documents {
             } }
             if (!empty($c['services']['yandex']) || !empty($c['services']['google']) || !empty($c['services']['sberads'])) {
                 $t.='<tr><td>Анализ посещаемости</td><td>Посетители; сетевые, технические сведения и идентификаторы (в зависимости от сервиса)</td><td>'.esc_html($c['analytics_mode']==='strict'?'Согласие посетителя': self::analytics_basis_text($c)).'</td><td>'.esc_html($c['data']['retention']).'</td></tr>';
+            }
+            if (!empty($c['services']['vk'])) {
+                $t.='<tr><td>Измерение рекламных кампаний и маркетинговая аналитика</td><td>Посетители; технические сведения, рекламные идентификаторы и события взаимодействия</td><td>Отдельное согласие посетителя на маркетинговые технологии</td><td>'.esc_html($c['data']['retention']).'</td></tr>';
             }
             $t.='</tbody></table>';
             $t.='<h2>3. Источники и действия с данными</h2><p>Данные могут поступать непосредственно от посетителя при отправке форм и использовании функций сайта, а также автоматически от браузера при обращении к веб-ресурсам. В зависимости от цели могут выполняться сбор, запись, систематизация, хранение, использование, предоставление уполномоченным получателям, удаление и уничтожение данных.</p>';

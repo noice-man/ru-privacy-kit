@@ -6,7 +6,7 @@
   var data = window.RUPK_EARLY && window.RUPK_EARLY.choice;
   var consent = data && data.v === cfg.revision && data.decided === true ? data : null;
   var id = consent && consent.id || makeId();
-  var started = { yandex: false, google: false, sberads: false };
+  var started = { yandex: false, google: false, sberads: false, vk: false };
   var googleInitialized = false;
   var initialAnalytics = false;
   var root, banner, panel, lastFocused;
@@ -111,7 +111,23 @@
       document.head.appendChild(script);
     }
   }
-  function runTrackers() { runYandex(); runGoogle(); runSberads(); }
+  function runVkPixel() {
+    // VK Ads pixel uses the top.mail.ru counter runtime; do not create noscript pixels.
+    // Marketing must be explicitly accepted, regardless of the analytics mode.
+    var s=cfg.services.vk;
+    if (!s || !s.managed || !consent || consent.m !== true || started.vk || !/^[0-9]{1,20}$/.test(String(s.id))) return;
+    window._tmr=window._tmr||[];
+    window._tmr.push({id:String(s.id),type:'pageView',start:Date.now()});
+    started.vk=true;
+    if (!document.querySelector('script[data-rupk-vk]')) {
+      var script=document.createElement('script');
+      script.async=true;
+      script.src='https://top-fwz1.mail.ru/js/code.js';
+      script.setAttribute('data-rupk-vk','1');
+      document.head.appendChild(script);
+    }
+  }
+  function runTrackers() { runYandex(); runGoogle(); runSberads(); runVkPixel(); }
   function disableTrackers() {
     var y=cfg.services.yandex, g=cfg.services.google;
     if (y && y.managed) window['disableYaCounter'+y.id]=true;
@@ -142,6 +158,7 @@
   }
   function store(f,a,m) {
     var wasTracking=started.yandex || started.google || started.sberads;
+    var wasMarketing=started.vk;
     var before=consent;
     consent={v:cfg.revision,id:id,decided:true,f:!!f,a:!!a,m:!!m,ts:Date.now()};
     persist();
@@ -154,16 +171,18 @@
       if (googleInitialized && typeof window.gtag==='function') window.gtag('consent','update',googleState());
       runTrackers();
     }
+    if (consent.m) runVkPixel();
     wpConsent(); log(before && before.a && !consent.a ? 'revoke' : before?'change':consent.a||consent.m||consent.f?'grant':'deny');
     emit(before && before.a && !consent.a?'rupk:consent-revoked':'rupk:consent-changed');
     hideBanner(); closePanel();
     if (root) root.classList.add('rupk-decided');
     // In-flight async scripts cannot be retracted; a reload reapplies early suppression before third-party code.
-    if (wasTracking && !consent.a) window.location.reload();
+    if ((wasTracking && !consent.a) || (wasMarketing && !consent.m)) window.location.reload();
   }
   function onAction(action) {
     if (action==='deny') store(false,false,false);
     else if (action==='accept') store(true,true,true);
+    else if (action==='micro_accept') store(false,true,false);
     else if (action==='settings') showPanel();
     else if (action==='save') {
       function check(k) { var el=panel.querySelector('[data-rupk-category="'+k+'"]'); return el?el.checked:false; }

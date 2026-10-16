@@ -285,3 +285,15 @@
 #rupk-root.rupk-layout-notice .rupk-preview-notice{display:block;}
 #rupk-root.rupk-layout-notice .rupk-preview-regular{display:none;}
 @media(max-width:760px){#rupk-root.rupk-layout-notice .rupk-banner{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));width:calc(100vw - 16px);padding:12px 42px 12px 13px;max-height:55dvh;}}
+
+/* Public Beta 1.0.0-beta.10: genuine micro layout with a single consent action. */
+#rupk-root.rupk-layout-micro .rupk-banner{left:12px!important;right:12px!important;bottom:calc(12px + env(safe-area-inset-bottom))!important;top:auto!important;position:fixed;display:flex;align-items:center;justify-content:space-between;flex-direction:row;gap:14px;width:calc(100vw - 24px);max-width:none;padding:10px 12px;border-radius:12px;min-height:54px;}
+#rupk-root.rupk-layout-micro .rupk-banner .rupk-copy{min-width:0;flex:1 1 auto;}
+#rupk-root.rupk-layout-micro .rupk-banner p{font-size:12px;line-height:1.45;margin:0;}
+#rupk-root.rupk-layout-micro .rupk-banner .rupk-actions{display:none!important;}
+#rupk-root .rupk-micro-accept{display:none;}
+#rupk-root.rupk-layout-micro .rupk-micro-accept{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;min-width:75px;min-height:34px;background:#101010!important;color:#fff!important;border:0!important;border-radius:7px;font-size:12px;font-weight:700;padding:8px 14px;}
+#rupk-root .rupk-preview-micro{display:none;}
+#rupk-root.rupk-layout-micro .rupk-preview-micro{display:block;}
+#rupk-root.rupk-layout-micro .rupk-preview-regular,#rupk-root.rupk-layout-micro .rupk-preview-notice{display:none;}
+@media(max-width:540px){#rupk-root.rupk-layout-micro .rupk-banner{left:7px!important;right:7px!important;bottom:calc(7px + env(safe-area-inset-bottom))!important;width:calc(100vw - 14px);gap:9px;padding:10px;}#rupk-root.rupk-layout-micro .rupk-banner p{font-size:11px;line-height:1.38;}#rupk-root.rupk-layout-micro .rupk-micro-accept{padding:7px 9px;min-width:65px;}}

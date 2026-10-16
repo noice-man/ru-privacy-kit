@@ -14,7 +14,7 @@ final class RUPK_Admin {
     }
     public static function menu(): void {
         add_menu_page('RU Privacy Kit','RU Privacy Kit','manage_options','rupk', [self::class,'dashboard'],'dashicons-shield-alt',78);
-        $pages=['rupk-wizard'=>['Мастер настройки','wizard'],'rupk-design'=>['Cookie-баннер','design'], 'rupk-services'=>['Аналитика и сервисы','services'], 'rupk-documents'=>['Документы','documents'], 'rupk-consent'=>['Журнал согласий','journal'], 'rupk-diagnostics'=>['Диагностика','diagnostics'], 'rupk-settings'=>['Настройки','settings']];
+        $pages=['rupk-wizard'=>['Мастер настройки','wizard'],'rupk-design'=>['Cookie-баннер','design'], 'rupk-services'=>['Режим аналитики','services'], 'rupk-trackers'=>['Счётчики и пиксели','trackers'], 'rupk-documents'=>['Документы','documents'], 'rupk-consent'=>['Журнал согласий','journal'], 'rupk-diagnostics'=>['Диагностика','diagnostics'], 'rupk-settings'=>['Настройки','settings']];
         foreach ($pages as $slug=>$val) { add_submenu_page('rupk',$val[0],$val[0],'manage_options',$slug,[self::class,$val[1]]); }
     }
     public static function assets(string $hook): void {
@@ -71,7 +71,7 @@ final class RUPK_Admin {
     }
     private static function form_end(int $step,string $label='Сохранить и продолжить'): void {
         echo '<div class="rupk-actions">';
-        if ($step>1) { echo '<a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step='.($step-1))).'">Назад</a>'; }
+        if ($step>1 && $step<9) { echo '<a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step='.($step-1))).'">Назад</a>'; }
         submit_button($label,'primary','submit',false);
         echo '</div></form>';
     }
@@ -97,7 +97,7 @@ final class RUPK_Admin {
             foreach (RUPK_Documents::purpose_map() as $id=>$p) { self::checkbox('purposes['.$id.']',$p[0],in_array($id,$c['purposes'],true),$p[1]); }
             self::form_end(2);
         } elseif ($step===3) {
-            echo '<h2>3. Какие инструменты подключены к сайту?</h2><p>Отметьте только то, что действительно используется. Если не знаете, проверьте установленные плагины и код темы. Сам выбор сервиса не означает, что RU Privacy Kit автоматически управляет его скриптами.</p>';
+            echo '<h2>3. Какие инструменты подключены к сайту?</h2><p>Яндекс Метрику, GA4, Статистику от SberAds и пиксель VK Рекламы RU Privacy Kit может <strong>установить самостоятельно по ID</strong>: вручную вставлять код в тему не потребуется. Исключите ранее добавленные копии счётчиков, чтобы избежать дублей. Остальные сервисы здесь учитываются для документов, но автоматически не управляются.</p>';
             self::form_start(3);
             $groups=[
                 'Счётчики посещаемости'=>['yandex','google','sberads','local'],
@@ -109,8 +109,8 @@ final class RUPK_Admin {
                 echo '<section class="rupk-service-group"><h3>'.esc_html($heading).'</h3><div class="rupk-service-grid">';
                 foreach ($ids as $id) {
                     $svc=$registry[$id];
-                    $helper=($svc['category']==='analytics')?
-                        'Можно загрузить через плагин, если указан ID счётчика и устранены дубли.':
+                    $helper=(in_array($id,['yandex','google','sberads','vk'],true))?
+                        'RU Privacy Kit устанавливает код по ID и соблюдает выбранные разрешения. Проверьте отсутствие дублей.':
                         'Установленный извне скрипт плагин пока не блокирует: потребуется отдельная проверка.';
                     echo '<div class="rupk-service-choice">';
                     self::checkbox('services['.$id.']',$svc['label'],!empty($c['services'][$id]),$helper);
@@ -124,6 +124,8 @@ final class RUPK_Admin {
             self::field('google_id','Идентификатор потока Google Analytics 4',$c['google_id'],'text','Значение начинается с G- (не GTM-).');
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="sberads">';
             self::field('sberads_id','ID проекта «Статистика от SberAds»',$c['sberads_id'],'text','Номер проекта из кода счётчика в личном кабинете SberAds. Только цифры. Удалите дублирующую вставку кода из темы или GTM.');
+            echo '</div><div class="rupk-service-fields" data-rupk-service-field="vk">';
+            self::field('vk_id','ID пикселя VK Рекламы',$c['vk_id'],'text','Только цифры из кабинета VK Рекламы → Сайты → Пиксель. Скрипт загружается только после согласия на маркетинг.');
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="gtm">';
             self::field('gtm_id','Номер контейнера Google Tag Manager',$c['gtm_id'],'text','Вид GTM-XXXXXX. В beta.2 контейнер не загружается и не блокируется плагином.');
             echo '</div>';
@@ -241,10 +243,11 @@ final class RUPK_Admin {
         self::form_start($step);
         if ($step===7 && isset($_GET['page']) && $_GET['page']==='rupk-design') { echo '<input type="hidden" name="from_design" value="1">'; }
         echo '<div class="rupk-layout-grid">';
-        foreach (['bottom'=>'Нижняя полоса','card'=>'Плавающая карточка','modal'=>'Центральное окно','top'=>'Верхняя полоса','minimal'=>'Минималистичный','notice'=>'Информационное уведомление (отказ в браузере)'] as $id=>$label) {
+        foreach (['bottom'=>'Нижняя полоса','card'=>'Плавающая карточка','modal'=>'Центральное окно','top'=>'Верхняя полоса','minimal'=>'Минималистичный','notice'=>'Информационное уведомление (отказ в браузере)','micro'=>'Микро-баннер (одна строка)'] as $id=>$label) {
             echo '<label class="rupk-layout"><input type="radio" name="layout" value="'.esc_attr($id).'"'.checked($c['design']['layout'],$id,false).'><span class="rupk-schematic rupk-schematic-'.esc_attr($id).'"><i></i></span><strong>'.esc_html($label).'</strong></label>';
         }
         echo '</div>';
+        echo '<div class="rupk-helper"><strong>Микро-баннер:</strong> кнопка «Принять» разрешает только веб-аналитику. Рекламный пиксель VK Рекламы потребует отдельного разрешения категории «Маркетинг» через ссылку «Настройки». Если аналитика включена до отказа, посетитель может отключить её в тех же настройках.</div>';
         echo '<div class="rupk-helper"><strong>Информационное уведомление:</strong> содержит ссылку на политику cookie и совет запретить cookie в браузере; без кнопок согласия. Закрытие уведомления не является согласием. В строгом режиме счётчики продолжат ждать разрешения, которое такое уведомление не собирает. Для запуска аналитики до ответа необходимо выбрать режим «Аналитика до отказа» и отдельно подтвердить применимое правовое основание для каждого счётчика. Браузерная блокировка cookie не гарантирует прекращение всех сетевых запросов.</div>';
         self::select('theme','Тема',$c['design']['theme'],['inherit'=>'Как на сайте (наследование темы WP)','light'=>'Светлая','dark'=>'Тёмная','system'=>'Как в системе пользователя','custom'=>'Свои цвета']);
         echo '<div class="rupk-field-row">';
@@ -258,15 +261,15 @@ final class RUPK_Admin {
         echo '<div class="rupk-preview-shell"><div class="rupk-preview-stage"><div class="rupk-preview-placeholder"><div class="rupk-preview-header"></div><div class="rupk-preview-lines"></div></div>';
         echo '<div id="rupk-root" class="rupk-layout-'.esc_attr($c['design']['layout']).' rupk-theme-'.esc_attr($c['design']['theme']).'"><section class="rupk-banner" role="region">';
         echo '<div class="rupk-copy"><div class="rupk-preview-regular"><h2>Настройки файлов cookie</h2><p>Для работы сайта мы используем необходимые cookie. С вашего разрешения мы также включаем аналитику и другие необязательные технологии.</p><p class="rupk-links"><a href="#">Политика cookie</a><a href="#">Политика ПДн</a></p></div>';
-        echo '<div class="rupk-preview-notice"><p>Для настройки персонализированных сервисов сайт использует <a href="#">файлы cookie</a>, а также метрические и другие аналитические системы. Вы можете запретить использование cookie в настройках вашего браузера.</p></div></div>';
-        echo '<div class="rupk-actions"><button type="button" class="rupk-primary">Принять все</button><button type="button">Настроить</button><button type="button">Только нужные</button></div><button type="button" class="rupk-notice-close" aria-label="Закрыть уведомление">×</button></section></div>';
+        echo '<div class="rupk-preview-notice"><p>Для настройки персонализированных сервисов сайт использует <a href="#">файлы cookie</a>, а также метрические и другие аналитические системы. Вы можете запретить использование cookie в настройках вашего браузера.</p></div><div class="rupk-preview-micro"><p>Сайт использует <a href="#">cookie</a> и аналитику. Нажимая «Принять», вы разрешаете сбор статистики. Cookie можно отключить в браузере. <a href="#">Настройки</a>.</p></div></div>';
+        echo '<div class="rupk-actions"><button type="button" class="rupk-primary">Принять все</button><button type="button">Настроить</button><button type="button">Только нужные</button></div><button type="button" class="rupk-micro-accept" aria-label="Разрешить аналитику">Принять</button><button type="button" class="rupk-notice-close" aria-label="Закрыть уведомление">×</button></section></div>';
         echo '</div></div><p class="description">Это предпросмотр внешнего вида, а не рабочая форма согласия.</p>';
         self::form_end($step,'Сохранить дизайн');
     }
     public static function dashboard(): void {
         $c=RUPK_Core::config(); self::header('RU Privacy Kit','Единое управление юридическими страницами, согласиями и аналитикой.');
         echo '<div class="rupk-cards">';
-        foreach ([['Мастер',$c['complete']?'Завершён':'Не завершён','rupk-wizard'],['Баннер',$c['enabled']?'Включён':'Выключен','rupk-design'],['Режим аналитики',['strict'=>'Сначала согласие','optout'=>'До отказа','advanced'=>'Расширенный'][$c['analytics_mode']],'rupk-services'],['Документы',count(array_filter($c['documents'])).' привязано','rupk-documents']] as $tile) {
+        foreach ([['Мастер',$c['complete']?'Завершён':'Не завершён','rupk-wizard'],['Баннер',$c['enabled']?'Включён':'Выключен','rupk-design'],['Счётчики и пиксели',count(array_filter(array_intersect_key($c['services'],array_flip(['yandex','google','sberads','vk'])))).' выбрано','rupk-trackers'],['Документы',count(array_filter($c['documents'])).' привязано','rupk-documents']] as $tile) {
             echo '<a href="'.esc_url(admin_url('admin.php?page='.$tile[2])).'" class="rupk-tile"><small>'.esc_html($tile[0]).'</small><strong>'.esc_html($tile[1]).'</strong></a>';
         } echo '</div>';
         self::warnings_list($c);
@@ -357,7 +360,41 @@ final class RUPK_Admin {
         echo '<div class="rupk-review-row"><span class="rupk-review-symbol" aria-hidden="true">'.($kind==='todo'?'!':'i').'</span><div><strong>'.esc_html($item['title']).'</strong><p>'.esc_html($item['detail']).'</p></div><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step='.(int)$item['step'])).'">'.($kind==='todo'?'Исправить':'Проверить').'</a></div>';
     }
     public static function design(): void { self::header('Cookie-баннер'); echo '<div class="rupk-panel">'; self::design_fields(RUPK_Core::config(),7); echo '</div>'; self::footer(); }
-    public static function services(): void { self::header('Аналитика и сервисы'); echo '<div class="rupk-panel">'; self::analytics_fields(RUPK_Core::config(),4); echo '<hr><p><a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=3')).'">Изменить список счётчиков и их ID в мастере</a></p></div>'; self::footer(); }
+    public static function services(): void { self::header('Режим аналитики'); echo '<div class="rupk-panel">'; self::analytics_fields(RUPK_Core::config(),4); echo '<hr><p><a href="'.esc_url(admin_url('admin.php?page=rupk-trackers')).'">Подключить и настроить счётчики и пиксели</a></p></div>'; self::footer(); }
+    public static function trackers(): void {
+        $c=RUPK_Core::config();
+        self::header('Счётчики и пиксели', 'Подключение аналитики и рекламы по ID — без вставки кода в тему или GTM.');
+        echo '<div class="rupk-panel"><h2>Подключить инструменты</h2><p>Выберите нужные инструменты и укажите их ID. Плагин сам добавит код на страницы, где разрешён запуск. Предварительно удалите дублирующие счётчики из темы, GTM и других плагинов.</p>';
+        if (!$c['complete'] || !$c['enabled']) {
+            echo '<div class="notice notice-warning inline"><p>Сейчас публикация настроек ещё не завершена. После изменения состава счётчиков повторно проверьте документы на <a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">шаге 8</a>. До этого новые счётчики не запустятся.</p></div>';
+        }
+        self::form_start(10);
+        $tools=[
+            'yandex'=>['Название'=>'Яндекс Метрика','Описание'=>'Статистика посещений. Код устанавливается плагином после разрешения аналитики либо в подтверждённом режиме до отказа.','field'=>'yandex_id','label'=>'Номер счётчика','hint'=>'Числовой ID из настроек Яндекс Метрики.'],
+            'google'=>['Название'=>'Google Analytics 4','Описание'=>'Статистика GA4. При расширенном режиме возможны технические сигналы до согласия.','field'=>'google_id','label'=>'Measurement ID','hint'=>'Начинается с G-. Не указывайте GTM-.'],
+            'sberads'=>['Название'=>'Статистика от SberAds (Рамблер/Топ-100)','Описание'=>'Установка Top100/Kraken по ID проекта. Код загружается с st.top100.ru, без обходящего согласие noscript-пикселя.','field'=>'sberads_id','label'=>'ID проекта SberAds','hint'=>'Например, 7753037. Переносите только номер проекта, не весь HTML-код.'],
+            'vk'=>['Название'=>'Пиксель VK Рекламы','Описание'=>'Пиксель рекламной аналитики top.mail.ru. Загружается только после явного разрешения маркетинговых технологий.','field'=>'vk_id','label'=>'ID пикселя VK Рекламы','hint'=>'Числовой ID из настроек пикселя в рекламном кабинете.'],
+        ];
+        echo '<div class="rupk-tracker-grid">';
+        foreach ($tools as $id=>$tool) {
+            echo '<section class="rupk-tracker-card" data-rupk-tracker="'.esc_attr($id).'">';
+            echo '<h3>'.esc_html($tool['Название']).'</h3><p>'.esc_html($tool['Описание']).'</p>';
+            self::checkbox('services['.$id.']','Устанавливать через RU Privacy Kit',!empty($c['services'][$id]),'Внешний код этого же счётчика нужно отключить, чтобы не удваивать статистику.');
+            echo '<div data-rupk-tracker-id="'.esc_attr($id).'">';
+            self::field($tool['field'],$tool['label'],$c[$tool['field']],'text',$tool['hint']);
+            echo '</div>';
+            if (!empty($c['services'][$id])) {
+                $ok=RUPK_Core::managed($c,$id);
+                echo '<p class="rupk-tracker-status '.($ok?'is-valid':'is-invalid').'">'.($ok?'Формат ID корректен · код устанавливает плагин':'Укажите корректный ID для запуска').'</p>';
+            }
+            echo '</section>';
+        }
+        echo '</div><p class="description">GTM, капча, встроенные карты и произвольные сторонние теги пока не устанавливаются этим разделом. Их можно отметить в мастере для отражения в документах. Сервисные события, уже вставленные в тему, плагин не блокирует.</p>';
+        self::form_end(10,'Сохранить счётчики и пиксели');
+        echo '<p><a href="'.esc_url(admin_url('admin.php?page=rupk-services')).'">Выбрать режим аналитики</a> · <a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">Проверить документы и завершить настройку</a></p>';
+        echo '</div>'; self::footer();
+    }
+
     /** Publication requires matching checked settings and current approved documents. */
     private static function required_documents(array $c): array {
         $types=['cookie','privacy','terms'];
@@ -492,7 +529,7 @@ final class RUPK_Admin {
     }
     public static function save(): void {
         $step=isset($_POST['step'])?absint($_POST['step']):0;
-        if (!in_array($step,[1,2,3,4,5,6,7,9],true)) { wp_die('Некорректный шаг.',400); }
+        if (!in_array($step,[1,2,3,4,5,6,7,9,10],true)) { wp_die('Некорректный шаг.',400); }
         self::guard('rupk_save_'.$step);
         $p=wp_unslash($_POST); $c=RUPK_Core::config(); $v=[];
         $text=static fn($name,$fallback='')=>sanitize_text_field((string)($p[$name]??$fallback));
@@ -509,9 +546,16 @@ final class RUPK_Admin {
         } elseif ($step===3) {
             $v['services']=[];
             foreach (RUPK_Core::registry() as $id=>$_) { $v['services'][$id]=!empty($p['services'][$id]); }
-            $v['yandex_id']=$text('yandex_id'); $v['google_id']=strtoupper($text('google_id')); $v['sberads_id']=$text('sberads_id'); $v['gtm_id']=strtoupper($text('gtm_id'));
+            $v['yandex_id']=$text('yandex_id'); $v['google_id']=strtoupper($text('google_id')); $v['sberads_id']=$text('sberads_id'); $v['vk_id']=$text('vk_id'); $v['gtm_id']=strtoupper($text('gtm_id'));
             $v['cookie_inventory']=sanitize_textarea_field((string)($p['cookie_inventory']??''));
             $v['inventory_reviewed']=!empty($p['inventory_reviewed']);
+        } elseif ($step===10) {
+            // Independent tracker page: do not change external services, legal details or cookie inventory.
+            foreach (['yandex','google','sberads','vk'] as $id) {
+                $v['services'][$id]=!empty($p['services'][$id]);
+                $raw=$text($id.'_id');
+                $v[$id.'_id']=$id==='google'?strtoupper($raw):$raw;
+            }
         } elseif ($step===4) {
             $v['analytics_mode']=$set($text('analytics_mode'),['strict','optout','advanced'],'strict');
             foreach (['yandex','google','sberads'] as $id) {
@@ -535,14 +579,15 @@ final class RUPK_Admin {
         } elseif ($step===7) {
             $colors=[];
             foreach (['bg','text','accent'] as $color) { $colors[$color]=sanitize_hex_color((string)($p['color'][$color]??''))?:''; }
-            $v['design']=array_merge($colors,['layout'=>$set($text('layout'),['bottom','card','modal','top','minimal','notice'],'bottom'), 'theme'=>$set($text('theme'),['inherit','light','dark','system','custom'],'inherit'),
+            $v['design']=array_merge($colors,['layout'=>$set($text('layout'),['bottom','card','modal','top','minimal','notice','micro'],'bottom'), 'theme'=>$set($text('theme'),['inherit','light','dark','system','custom'],'inherit'),
                 'radius'=>max(0,min(32,absint($p['radius']??14))), 'retention_days'=>max(1,min(365,absint($p['retention_days']??180))), 'floating_link'=>!empty($p['floating_link'])]);
         } elseif ($step===9) {
             $v['log_consent']=!empty($p['log_consent']); $v['log_retention_days']=max(1,min(365,absint($p['log_retention_days']??180)));
         }
-        if ($step!==9) { $v['wizard_step']=min(8,$step+1); }
+        if ($step!==9 && $step!==10) { $v['wizard_step']=min(8,$step+1); }
         RUPK_Core::save($v,$step!==7&&$step!==9);
         if ($step===9) { self::redirect('rupk-settings','Настройки сохранены.'); }
+        if ($step===10) { self::redirect('rupk-trackers','Счётчики сохранены. Если их состав или ID изменились, пройдите итоговую проверку и подтвердите обновление документов, чтобы снова включить баннер и управляемые скрипты.'); }
         if ($step===7 && isset($p['from_design'])) { self::redirect('rupk-design','Дизайн сохранён.'); }
         if ($step===4 && isset($p['from_services'])) { self::redirect('rupk-services','Режим сохранён.'); }
         self::redirect('rupk-wizard','Шаг сохранён.',min(8,$step+1));

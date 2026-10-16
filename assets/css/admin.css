@@ -174,3 +174,17 @@
 
 .rupk-preview-shell #rupk-root.rupk-layout-notice .rupk-banner{left:8px!important;right:8px!important;width:calc(100% - 16px)!important;max-width:none!important;bottom:8px!important;top:auto!important;padding:10px 38px 10px 12px!important;}
 .rupk-preview-shell #rupk-root.rupk-layout-notice .rupk-banner p{font-size:12px!important;}
+
+/* Direct counter/pixel installation workspace */
+.rupk-tracker-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0;max-width:1180px}
+.rupk-tracker-card{border:1px solid #dce4ee;border-radius:14px;padding:20px;background:#fbfcff}
+.rupk-tracker-card h3{margin:0 0 7px;font-size:18px;color:#172b45}
+.rupk-tracker-card>p{font-size:13px;color:#586a83;line-height:1.55}
+.rupk-tracker-card .rupk-check{background:#fff}
+.rupk-tracker-card .rupk-field{margin:12px 0;max-width:100%}
+.rupk-tracker-status{margin:5px 0!important;font-size:12px!important;font-weight:600}
+.rupk-tracker-status.is-valid{color:#28754b!important}
+.rupk-tracker-status.is-invalid{color:#b15c15!important}
+@media(max-width:840px){.rupk-tracker-grid{grid-template-columns:1fr}}
+.rupk-schematic-micro i{left:3px;right:3px;bottom:2px;height:14px;border-width:2px}
+.rupk-preview-shell #rupk-root.rupk-layout-micro .rupk-banner{position:absolute;left:8px!important;right:8px!important;bottom:8px!important;width:calc(100% - 16px);}

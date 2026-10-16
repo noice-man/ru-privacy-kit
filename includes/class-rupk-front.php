@@ -37,7 +37,7 @@ final class RUPK_Front {
         }
         wp_add_inline_style('rupk-front','#rupk-root{'.implode(';',$tokens).'}');
         $services=[];
-        foreach (['yandex','google','sberads'] as $id) {
+        foreach (['yandex','google','sberads','vk'] as $id) {
             $services[$id]=['managed'=>RUPK_Core::managed($c,$id),'id'=>$c[$id.'_id'], 'basis'=>RUPK_Core::basis_confirmed($c,$id)];
         }
         $cfg=[
@@ -46,7 +46,7 @@ final class RUPK_Front {
             'endpoint'=>admin_url('admin-ajax.php'), 'nonce'=>wp_create_nonce('rupk_public'),
             'privacyUrl'=>RUPK_Documents::url('privacy',$c), 'cookieUrl'=>RUPK_Documents::url('cookie',$c),
             'hasAnalytics'=>(bool)($services['yandex']['managed']||$services['google']['managed']||$services['sberads']['managed']),
-            'hasUnmanaged'=>count(RUPK_Core::active_services($c)) > (int)!empty($c['services']['yandex'])+(int)!empty($c['services']['google'])+(int)!empty($c['services']['sberads']),
+            'hasUnmanaged'=>count(RUPK_Core::active_services($c)) > (int)!empty($c['services']['yandex'])+(int)!empty($c['services']['google'])+(int)!empty($c['services']['sberads'])+(int)!empty($c['services']['vk']),
         ];
         wp_enqueue_script('rupk-front',RUPK_URL.'assets/js/front.js',[],RUPK_VERSION,false);
         wp_add_inline_script('rupk-front','window.RUPK_CONFIG='.wp_json_encode($cfg,JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT).';','before');
@@ -73,6 +73,12 @@ final class RUPK_Front {
             echo $policyUrl?'<a href="'.esc_url($policyUrl).'">файлы cookie</a>':'файлы cookie';
             echo ', а также метрические и другие аналитические системы. Вы можете запретить использование cookie в настройках вашего браузера.</p></div>';
             echo '<button type="button" class="rupk-notice-close" data-rupk="dismiss" aria-label="Закрыть уведомление">×</button>';
+        } elseif ($d['layout']==='micro') {
+            $policyUrl=RUPK_Documents::url('cookie',$c);
+            echo '<div class="rupk-copy"><p>Сайт использует ';
+            echo $policyUrl?'<a href="'.esc_url($policyUrl).'">файлы cookie</a>':'файлы cookie';
+            echo ' и аналитические системы для улучшения работы. Нажимая «Принять», вы разрешаете сбор статистики. Cookie можно отключить в браузере. <a href="#rupk-cookie-preferences" class="rupk-open-preferences">Настройки</a>.</p></div>';
+            echo '<button type="button" class="rupk-micro-accept" data-rupk="micro_accept">Принять</button>';
         } else {
             echo '<div class="rupk-copy"><h2>'.esc_html($name).'</h2><p>'.esc_html($prefix.' '.$text).'</p><p class="rupk-links">';
         if (RUPK_Documents::url('cookie',$c)) { echo '<a href="'.esc_url(RUPK_Documents::url('cookie',$c)).'">Политика cookie</a>'; }
