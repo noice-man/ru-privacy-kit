@@ -6,7 +6,7 @@ final class RUPK_Core {
         return [
             'schema' => 1, 'complete' => false, 'enabled' => false, 'revision' => 1,
             'analytics_mode' => 'strict', 'mode_changed_at' => '', 'mode_changed_by' => 0,
-            'site_kind' => 'information', 'operator_kind' => 'ip',
+            'site_kind' => 'information', 'operator_kind' => 'ip', 'operator_address_public' => false, 'policy_updated_at' => '',
             'operator' => ['name'=>'','inn'=>'','ogrn'=>'','address'=>'','email'=>get_option('admin_email',''), 'support'=>get_option('admin_email','')],
             'purposes' => ['feedback'],
             'data' => ['hosting'=>'unknown','retention'=>'До достижения целей обработки либо в сроки, предусмотренные законодательством РФ','security'=>'','crossborder'=>'unknown'],
@@ -35,6 +35,13 @@ final class RUPK_Core {
     public static function save(array $new, bool $material = false): void {
         $old = self::config();
         $updated = self::merge($old,$new);
+        // A live document revision is changed only by material content edits, never on a page view.
+        if ($material && (
+            $old['operator']!==$updated['operator'] ||
+            $old['operator_kind']!==$updated['operator_kind'] ||
+            $old['operator_address_public']!==$updated['operator_address_public'] ||
+            self::relevant($old)!==self::relevant($updated)
+        )) { $updated['policy_updated_at']=current_time('mysql',true); }
         if ($material) {
             $changed = self::relevant($old) !== self::relevant($updated);
             if ($changed) {
@@ -50,7 +57,7 @@ final class RUPK_Core {
         update_option(self::OPTION,$updated,false);
     }
     private static function relevant(array $cfg): string {
-        $keys=['analytics_mode','operator_kind','operator','site_kind','purposes','data','services','yandex_id','google_id','sberads_id','vk_id','gtm_id','cookie_inventory','inventory_reviewed','legal','commercial'];
+        $keys=['analytics_mode','site_kind','purposes','data','services','yandex_id','google_id','sberads_id','vk_id','gtm_id','cookie_inventory','inventory_reviewed','legal','commercial'];
         $out=[];
         foreach ($keys as $k) { $out[$k] = $cfg[$k] ?? null; }
         return wp_json_encode($out);
@@ -152,6 +159,10 @@ final class RUPK_Core {
         $unmanaged=[];
         foreach ($active as $id=>$service) {
             if ($service['category']==='unmanaged') { $unmanaged[]=$service['label']; }
+        }
+        if (!empty($c['commercial']['paid']) && empty($c['operator_address_public'])) {
+            $push('review','Проверьте раскрытие реквизитов продавца или исполнителя',
+                'Домашний адрес скрыт. Для платных услуг и интернет-магазинов могут действовать специальные требования к сведениям о продавце или исполнителе, отличные от требований к политике ПДн.',1);
         }
         if ($unmanaged) {
             $push('review','Внешние сервисы требуют ручной проверки',

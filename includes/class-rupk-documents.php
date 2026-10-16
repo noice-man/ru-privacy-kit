@@ -1,15 +1,35 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 final class RUPK_Documents {
-    public const TEMPLATE_VERSION = 4;
+    public const TEMPLATE_VERSION = 5;
+    /** Generated legal pages always reflect current configuration; never overwrite edited WP pages. */
+    public static function init(): void {
+        add_filter('the_content', [self::class,'live_content'], 12);
+    }
+    public static function live_content(string $content): string {
+        if (is_admin() || !is_singular('page') || !in_the_loop() || !is_main_query()) { return $content; }
+        $id=(int)get_the_ID();
+        if (!$id || !self::is_generated($id) || self::content_was_edited($id)) { return $content; }
+        $c=RUPK_Core::config();
+        foreach ($c['documents'] as $type=>$bound) {
+            if ((int)$bound!==$id || !isset(self::labels()[$type])) { continue; }
+            if ($type==='offer' && empty($c['commercial']['paid'])) { return $content; }
+            return self::build($type,$c);
+        }
+        return $content;
+    }
     public static function labels(): array { return ['cookie'=>'Политика использования файлов cookie','privacy'=>'Политика в отношении обработки персональных данных','terms'=>'Условия использования сайта','offer'=>'Публичная оферта']; }
     public static function slug(string $type): string { return ['cookie'=>'cookie-policy','privacy'=>'privacy-policy','terms'=>'terms-of-use','offer'=>'public-offer'][$type]??''; }
     public static function url(string $type,array $c): string { $id=(int)($c['documents'][$type]??0); return $id && get_post_status($id)==='publish' ? get_permalink($id) : ''; }
     public static function build(string $type,array $c): string {
         if (!isset(self::labels()[$type])) { return ''; }
         $site=esc_html(home_url('/')); $name=esc_html($c['operator']['name']);
-        $email=esc_html($c['operator']['email']); $address=esc_html($c['operator']['address']);
-        $date=esc_html(wp_date('d.m.Y')); $mode=esc_html(self::mode_text($c));
+        $email=esc_html($c['operator']['email']); $address=!empty($c['operator_address_public'])?esc_html($c['operator']['address']):'';
+        $docId=(int)($c['documents'][$type]??0);
+        $updated=trim((string)($c['policy_updated_at']??''));
+        $updatedTs=$updated!==''?strtotime($updated.' UTC'):false;
+        $fallbackTs=$docId && get_post($docId) ? (int)get_post_modified_time('U',true,$docId) : time();
+        $date=esc_html(wp_date('d.m.Y',$updatedTs?:$fallbackTs)); $mode=esc_html(self::mode_text($c));
         $cookie=esc_url(self::url('cookie',$c) ?: home_url('/cookie-policy/'));
         $privacy=esc_url(self::url('privacy',$c) ?: home_url('/privacy-policy/'));
         $start='<p><strong>Редакция от '.$date.'.</strong> Оператор: '.$name.'. Сайт: '.$site.'.</p>';

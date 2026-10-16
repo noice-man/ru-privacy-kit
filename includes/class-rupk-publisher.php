@@ -47,12 +47,11 @@ final class RUPK_Publisher {
                 continue;
             }
             if (RUPK_Documents::is_generated($id)) {
-                $stale = (int)get_post_meta($id,'_rupk_generated_revision',true)!==(int)$cfg['revision'] ||
-                    (int)get_post_meta($id,'_rupk_generated_template_version',true)!==RUPK_Documents::TEMPLATE_VERSION;
                 $manual=RUPK_Documents::content_was_edited($id);
-                if ($stale || $manual) { $refresh[$type]=$id; }
-                if ($manual) { $edited[$type]=$id; }
-                $jobs[$type]=['action'=>($stale||$manual)?'update_generated':'publish_generated','id'=>$id,'title'=>RUPK_Documents::labels()[$type]];
+                // Generated and unedited pages are dynamically rendered. Their stored revision
+                // is not a blocker: no refreshing draft, diff, or re-publication is needed.
+                if ($manual) { $refresh[$type]=$id; $edited[$type]=$id; }
+                $jobs[$type]=['action'=>$manual?'update_generated':'publish_generated','id'=>$id,'title'=>RUPK_Documents::labels()[$type]];
             } elseif ($post->post_status==='publish') {
                 if (stripos(wp_strip_all_tags($post->post_content),'Предлагаемый текст:')!==false ||
                     stripos(wp_strip_all_tags($post->post_content),'Suggested text:')!==false) {

@@ -11,12 +11,14 @@ final class RUPK_Admin {
         add_action('admin_post_rupk_finish',[self::class,'finish']);
         add_action('admin_post_rupk_bind',[self::class,'bind']);
         add_action('admin_post_rupk_disable',[self::class,'disable']);
+        RUPK_Operator_Profile::init();
     }
     public static function menu(): void {
         add_menu_page('RU Privacy Kit','RU Privacy Kit','manage_options','rupk', [self::class,'dashboard'],'dashicons-shield-alt',78);
-        $pages=['rupk-wizard'=>['Мастер настройки','wizard'],'rupk-design'=>['Cookie-баннер','design'], 'rupk-services'=>['Режим аналитики','services'], 'rupk-trackers'=>['Счётчики и пиксели','trackers'], 'rupk-documents'=>['Документы','documents'], 'rupk-consent'=>['Журнал согласий','journal'], 'rupk-diagnostics'=>['Диагностика','diagnostics'], 'rupk-settings'=>['Настройки','settings']];
+        $pages=['rupk-wizard'=>['Мастер настройки','wizard'], 'rupk-operator'=>['Профиль оператора','operator_profile'],'rupk-design'=>['Cookie-баннер','design'], 'rupk-services'=>['Режим аналитики','services'], 'rupk-trackers'=>['Счётчики и пиксели','trackers'], 'rupk-documents'=>['Документы','documents'], 'rupk-consent'=>['Журнал согласий','journal'], 'rupk-diagnostics'=>['Диагностика','diagnostics'], 'rupk-settings'=>['Настройки','settings']];
         foreach ($pages as $slug=>$val) { add_submenu_page('rupk',$val[0],$val[0],'manage_options',$slug,[self::class,$val[1]]); }
     }
+    public static function operator_profile(): void { RUPK_Operator_Profile::screen(); }
     public static function assets(string $hook): void {
         if (strpos($hook,'rupk')===false) { return; }
         wp_enqueue_style('rupk-front-preview',RUPK_URL.'assets/css/front.css',[],RUPK_VERSION);
@@ -84,12 +86,15 @@ final class RUPK_Admin {
         } echo '</nav><div class="rupk-panel">';
         if ($step===1) {
             echo '<h2>1. Кто владеет сайтом?</h2><p>Реквизиты используются в документах. Проверьте сведения перед публикацией.</p>';
+            echo '<p><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-operator')).'">Импорт и экспорт профиля оператора</a> — перенесите реквизиты с другого сайта без повторного ввода.</p>';
             self::form_start(1);
             self::select('site_kind','Тип сайта',$c['site_kind'],['information'=>'Информационный сайт','blog'=>'Блог','corporate'=>'Корпоративный сайт','landing'=>'Лендинг с заявками','catalog'=>'Каталог','shop'=>'Интернет-магазин','saas'=>'SaaS / онлайн-сервис','other'=>'Другое']);
             self::select('operator_kind','Статус оператора',$c['operator_kind'],['ip'=>'Индивидуальный предприниматель','company'=>'Юридическое лицо','self'=>'Самозанятый','person'=>'Физическое лицо','other'=>'Иное']);
             foreach (['name'=>'Полное юридическое наименование / ФИО','inn'=>'ИНН','ogrn'=>'ОГРН или ОГРНИП','address'=>'Юридический / почтовый адрес','email'=>'Email для обращений по ПДн','support'=>'Email поддержки'] as $k=>$v) {
                 self::field('operator['.$k.']',$v,$c['operator'][$k],$k==='email'||$k==='support'?'email':'text','',$k==='name'||$k==='email');
             }
+            self::checkbox('operator_address_public','Публиковать адрес оператора на сайте',!empty($c['operator_address_public']),
+                'Для физлица, самозанятого и ИП по умолчанию выключено. Адрес остаётся в настройках. При платных услугах проверьте специальные требования к сведениям о продавце/исполнителе.');
             self::form_end(1);
         } elseif ($step===2) {
             echo '<h2>2. Какие данные обрабатываются?</h2><p>Отметьте реальные функции сайта; каждую цель отразим в политике ПДн.</p>';
@@ -406,11 +411,9 @@ final class RUPK_Admin {
         foreach (self::required_documents($c) as $type) {
             $id=(int)($c['documents'][$type]??0);
             if (!$id || !get_post($id) || get_post_type($id)!=='page') { continue; }
-            $rev=get_post_meta($id,'_rupk_generated_revision',true);
-            if ((string)$rev!=='' && (
-                (int)$rev!==(int)$c['revision'] ||
-                (int)get_post_meta($id,'_rupk_generated_template_version',true)!==RUPK_Documents::TEMPLATE_VERSION
-            )) { $stale[$type]=$id; }
+            if (RUPK_Documents::is_generated($id) && RUPK_Documents::content_was_edited($id)) {
+                $stale[$type]=$id; // Manually edited text needs explicit action; never overwrite silently.
+            }
         }
         return $stale;
     }
@@ -427,7 +430,7 @@ final class RUPK_Admin {
         return $blocked;
     }
     public static function documents(): void {
-        $c=RUPK_Core::config(); self::header('Юридические документы','Существующие страницы не перезаписываются автоматически.');
+        $c=RUPK_Core::config(); self::header('Юридические документы','Документы, созданные RU Privacy Kit, всегда выводят актуальные сведения из настроек. Ручные страницы остаются без изменений.');
         echo '<span id="rupk-publish-check" tabindex="-1"></span>';
         $todo=array_values(array_filter(RUPK_Core::review_items($c),static fn($item)=>$item['status']==='todo'));
         $plan=RUPK_Publisher::plan($c);
@@ -440,7 +443,7 @@ final class RUPK_Admin {
             foreach ($plan['errors'] as $reason) { echo '<div class="rupk-review-row"><span class="rupk-review-symbol">!</span><div><strong>'.esc_html($reason).'</strong></div><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">Исправить</a></div>'; }
             echo '</div><p><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">Открыть итоговую проверку мастера</a></p></section>';
         } else {
-            echo '<div class="notice notice-success inline rupk-doc-ready"><p><strong>Настройки готовы к публикации.</strong> Проверьте тексты страниц ниже. Если черновики устарели, потребуется отдельное разрешение на обновление.</p></div>';
+            echo '<div class="notice notice-success inline rupk-doc-ready"><p><strong>Настройки готовы к публикации.</strong> Опубликованные документы обновляют сведения автоматически. Если вы вручную редактировали документ, его текст защищён от замены.</p></div>';
         }
         echo '<div class="rupk-panel"><table class="widefat striped"><thead><tr><th>Документ</th><th>Страница</th><th>Действия</th></tr></thead><tbody>';
         foreach (RUPK_Documents::labels() as $key=>$label) {
@@ -451,7 +454,7 @@ final class RUPK_Admin {
                 echo '<a href="'.esc_url(get_edit_post_link($id)).'">Редактировать</a> · <a href="'.esc_url(get_preview_post_link($p)).'" target="_blank" rel="noopener">Посмотреть</a>';
             } else { echo 'Создайте черновик либо привяжите свою страницу'; }
             if ($p && isset($stale[$key])) {
-                echo '<p class="rupk-outdated"><strong>Текст устарел после изменения настроек. Перед публикацией его необходимо сверить и обновить.</strong></p>';
+                echo '<p class="rupk-outdated"><strong>Эта страница редактировалась вручную: для возврата к автоматическому тексту потребуется ваше подтверждение.</strong></p>';
                 if (function_exists('wp_text_diff')) {
                     $diff=wp_text_diff(wp_strip_all_tags($p->post_content), wp_strip_all_tags(RUPK_Documents::build($key,$c)), ['title'=>'Текущий текст','title_right'=>'Предлагаемая редакция']);
                     if ($diff) { echo '<details class="rupk-document-diff"><summary>Показать различия</summary>'.wp_kses_post($diff).'</details>'; }
@@ -474,7 +477,7 @@ final class RUPK_Admin {
             echo '<form id="rupk-publish-form" action="'.esc_url(admin_url('admin-post.php')).'" method="post"><input type="hidden" name="action" value="rupk_publish">'; wp_nonce_field('rupk_publish');
             self::checkbox('reviewed','Я проверил(а) фактические сведения и тексты всех документов',false);
             if ($plan['refresh']) {
-                echo '<div class="rupk-stale-confirm"><p><strong>Есть устаревшие тексты ('.count($plan['refresh']).').</strong> Плагин обновит только созданные им страницы, в том числе черновики. Ручные изменения их текста могут быть заменены: перед подтверждением сравните редакции и при необходимости сохраните собственную копию.</p>';
+                echo '<div class="rupk-stale-confirm"><p><strong>Есть вручную изменённые документы ('.count($plan['refresh']).').</strong> Перед заменой сохраните свои редакции. Остальные созданные плагином страницы обновляются при просмотре автоматически, без перепубликации.</p>';
                 self::checkbox('refresh_generated','Я проверил(а) различия и разрешаю обновить эти страницы до публикации',false);
                 echo '</div>';
             }
@@ -537,6 +540,7 @@ final class RUPK_Admin {
         if ($step===1) {
             $v['site_kind']=$set($text('site_kind'),['information','blog','corporate','landing','catalog','shop','saas','other'],'information');
             $v['operator_kind']=$set($text('operator_kind'),['ip','company','self','person','other'],'ip');
+            $v['operator_address_public']=!empty($p['operator_address_public']);
             $op=[];
             foreach ($c['operator'] as $k=>$old) { $raw=isset($p['operator'][$k])?$p['operator'][$k]:''; $op[$k]=in_array($k,['email','support'],true)?sanitize_email($raw):sanitize_text_field($raw); }
             $v['operator']=$op;
@@ -595,7 +599,7 @@ final class RUPK_Admin {
     public static function generate(): void {
         self::guard('rupk_generate'); $c=RUPK_Core::config();
         RUPK_Documents::create_drafts($c);
-        self::redirect('rupk-documents','Черновики подготовлены; проверьте их и подтвердите публикацию.');
+        self::redirect('rupk-documents','Страницы подготовлены. Проверьте документы и завершите настройку.');
     }
     public static function bind(): void {
         self::guard('rupk_bind');
