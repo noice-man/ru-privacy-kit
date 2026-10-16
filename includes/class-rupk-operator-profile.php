@@ -1,13 +1,17 @@
 <?php
 if (!defined('ABSPATH')) { exit; }
 /** Portable operator identity. Site-specific purposes, analytics, policies and secrets never cross sites. */
+require_once __DIR__ . '/trait-rupk-operator-address.php';
+require_once __DIR__ . '/trait-rupk-operator-transfer.php';
 final class RUPK_Operator_Profile {
+    use RUPK_Operator_Address, RUPK_Operator_Transfer;
     public const FORMAT = 'rupk-operator-profile';
     public const FORMAT_VERSION = 1;
     public static function init(): void {
         add_action('admin_post_rupk_profile_export', [self::class,'export']);
         add_action('admin_post_rupk_profile_preview', [self::class,'preview']);
         add_action('admin_post_rupk_profile_apply', [self::class,'apply']);
+        add_action('admin_post_rupk_profile_address', [self::class,'save_address']);
     }
     private static function guard(string $action): void {
         if (!current_user_can('manage_options')) { wp_die('Недостаточно прав для изменения реквизитов оператора.',403); }
@@ -18,96 +22,7 @@ final class RUPK_Operator_Profile {
         exit;
     }
     private static function transient_key(): string { return 'rupk_operator_import_'.get_current_user_id(); }
-    public static function profile(array $c, bool $include_address=false, bool $include_support=false): array {
-        $fields=['name','inn','ogrn','email'];
-        if ($include_address) { $fields[]='address'; }
-        if ($include_support) { $fields[]='support'; }
-        $operator=[];
-        foreach ($fields as $field) { $operator[$field]=(string)($c['operator'][$field]??''); }
-        return [
-            'format'=>self::FORMAT, 'format_version'=>self::FORMAT_VERSION,
-            'operator_kind'=>$c['operator_kind'], 'operator'=>$operator,
-            // Visibility is a per-site choice. Never export it as an instruction to publish a home address.
-        ];
-    }
-    public static function validate($raw): array|WP_Error {
-        if (!is_array($raw) || ($raw['format']??null)!==self::FORMAT || ($raw['format_version']??null)!==self::FORMAT_VERSION) {
-            return new WP_Error('format','Это не профиль оператора RU Privacy Kit или версия формата не поддерживается.');
-        }
-        $kind=$raw['operator_kind']??null;
-        if (!is_string($kind) || !in_array($kind,['ip','company','self','person','other'],true)) { return new WP_Error('kind','Неизвестный тип оператора.'); }
-        $data=$raw['operator']??null;
-        if (!is_array($data) || array_is_list($data)) { return new WP_Error('fields','Неверная структура сведений об операторе.'); }
-        foreach (array_keys($data) as $key) {
-            if (!in_array($key,['name','inn','ogrn','address','email','support'],true)) { return new WP_Error('unknown','В файле есть неизвестные поля.'); }
-        }
-        foreach (['name','email'] as $required) {
-            if (!isset($data[$required]) || !is_string($data[$required]) || trim($data[$required])==='') {
-                return new WP_Error('required','В профиле должны быть указаны наименование/ФИО и email для обращений.');
-            }
-        }
-        $output=[];
-        foreach ($data as $key=>$value) {
-            if (!is_string($value) || strlen($value)>1000) { return new WP_Error('value','В файле обнаружено поле с некорректным значением.'); }
-            $output[$key]=in_array($key,['email','support'],true)?sanitize_email($value):sanitize_text_field($value);
-        }
-        if (strlen(trim($output['name']))<2 || !is_email($output['email'])) {
-            return new WP_Error('identity','Проверьте наименование/ФИО и email оператора в файле.');
-        }
-        if (!empty($output['support']) && !is_email($output['support'])) { return new WP_Error('support','Некорректный email поддержки.'); }
-        if (!empty($output['inn']) && !preg_match('/^\d{10}(?:\d{2})?$/D',$output['inn'])) { return new WP_Error('inn','ИНН должен содержать 10 или 12 цифр.'); }
-        if (!empty($output['ogrn']) && !preg_match('/^\d{13}(?:\d{2})?$/D',$output['ogrn'])) { return new WP_Error('ogrn','ОГРН/ОГРНИП должен содержать 13 или 15 цифр.'); }
-        return ['operator_kind'=>$kind, 'operator'=>$output];
-    }
-    public static function export(): void {
-        self::guard('rupk_profile_export');
-        $cfg=RUPK_Core::config();
-        $payload=self::profile($cfg,!empty($_POST['with_address']),!empty($_POST['with_support']));
-        $json=wp_json_encode($payload,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
-        if (!is_string($json)) { wp_die('Не удалось сформировать файл профиля.',500); }
-        nocache_headers();
-        header('Content-Type: application/json; charset=utf-8');
-        header('Content-Disposition: attachment; filename="ru-privacy-operator-profile.json"');
-        header('Content-Length: '.strlen($json));
-        header('X-Content-Type-Options: nosniff');
-        echo $json;
-        exit;
-    }
-    public static function preview(): void {
-        self::guard('rupk_profile_preview');
-        $file=$_FILES['operator_file']??null;
-        if (!is_array($file) || ($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK ||
-            !is_uploaded_file((string)($file['tmp_name']??'')) ||
-            (int)($file['size']??0)>65536 || (int)($file['size']??0)<1) {
-            self::location('invalid_upload');
-        }
-        $raw=file_get_contents((string)$file['tmp_name'],false,null,0,65537);
-        if (!is_string($raw) || strlen($raw)>65536) { self::location('invalid_upload'); }
-        $decoded=json_decode($raw,true);
-        $data=self::validate($decoded);
-        if (is_wp_error($data)) { self::location('invalid_format'); }
-        set_transient(self::transient_key(),$data,15*MINUTE_IN_SECONDS);
-        self::location('preview');
-    }
-    public static function apply(): void {
-        self::guard('rupk_profile_apply');
-        $parsed=get_transient(self::transient_key());
-        if (!is_array($parsed) || is_wp_error(self::validate(['format'=>self::FORMAT,'format_version'=>1]+$parsed))) {
-            self::location('expired');
-        }
-        $operator=$parsed['operator'];
-        // Safe defaults: address and support are never imported without independent choices.
-        if (empty($_POST['import_address'])) { unset($operator['address']); }
-        if (empty($_POST['import_support'])) { unset($operator['support']); }
-        $v=['operator_kind'=>$parsed['operator_kind'], 'operator'=>$operator];
-        if (!empty($_POST['import_visibility']) && !empty($_POST['import_address']) && isset($parsed['operator']['address'])) {
-            // Explicit authorization to show the imported address, not based on untrusted file contents.
-            $v['operator_address_public']=true;
-        }
-        RUPK_Core::save($v,true);
-        delete_transient(self::transient_key());
-        self::location('imported');
-    }
+    /** Common placeholders from exported documents are absence of optional data, not bad IDs. */
     public static function screen(): void {
         if (!current_user_can('manage_options')) { wp_die('Недостаточно прав.',403); }
         $c=RUPK_Core::config();
@@ -117,12 +32,28 @@ final class RUPK_Operator_Profile {
             'invalid_upload'=>['error','Выберите JSON-файл размером до 64 КБ.'],
             'invalid_format'=>['error','Файл не прошёл проверку: нужен JSON-профиль оператора RU Privacy Kit с корректными реквизитами.'],
             'expired'=>['error','Предварительный просмотр устарел. Загрузите файл заново.'],
+            'invalid_inn'=>['error','Некорректный ИНН: требуется 10 или 12 цифр. Если ИНН нет, оставьте поле пустым или укажите прочерк.'],
+            'invalid_ogrn'=>['error','Некорректный ОГРН/ОГРНИП: требуется 13 или 15 цифр. Если номер не применяется, оставьте поле пустым или укажите прочерк.'],
+            'invalid_identity'=>['error','Проверьте ФИО/наименование и email оператора в JSON.'],
+            'invalid_required'=>['error','В JSON должны быть заполнены ФИО/наименование и email для обращений.'],
+            'invalid_support'=>['error','В JSON некорректный email поддержки.'],
+            'address_saved'=>['success','Адрес и его видимость сохранены. Автоматически созданные документы показывают актуальные сведения без перепубликации.'],
+            'address_required'=>['error','Чтобы публиковать адрес, сначала заполните его.'],
+            'address_too_long'=>['error','Адрес слишком длинный. Укажите адрес длиной до 500 символов.'],
         ];
         echo '<div class="wrap rupk-admin"><header class="rupk-admin-head"><div><h1>Профиль оператора</h1><p>Один профиль для нескольких сайтов. Счётчики, cookies, условия оферты и настройки сайтов не переносятся.</p></div><span class="rupk-version">RU Privacy Kit '.esc_html(RUPK_VERSION).'</span></header>';
         if (isset($messages[$status])) { echo '<div class="notice notice-'.esc_attr($messages[$status][0]).' inline"><p>'.esc_html($messages[$status][1]).'</p></div>'; }
         $kind=['ip'=>'Индивидуальный предприниматель','company'=>'Юридическое лицо','self'=>'Самозанятый','person'=>'Физическое лицо','other'=>'Иное'];
         echo '<div class="rupk-panel"><h2>Текущие данные</h2><p><strong>'.esc_html($kind[$c['operator_kind']]??$c['operator_kind']).'</strong> · '.esc_html($c['operator']['name']).'</p><p>Контакт для обращений: '.esc_html($c['operator']['email']).'</p>';
-        echo '<p>Адрес в публичных документах: <strong>'.(!empty($c['operator_address_public'])?'показывается':'скрыт').'</strong>. Изменить видимость и реквизиты можно на <a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=1')).'">первом шаге мастера</a>.</p></div>';
+        echo '<p>Публикация адреса: <strong>'.(!empty($c['operator_address_public'])?'включена':'выключена').'</strong>. Остальные реквизиты можно изменить на <a href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=1')).'">первом шаге мастера</a>.</p>';
+        echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'">';
+        echo '<input type="hidden" name="action" value="rupk_profile_address">';
+        wp_nonce_field('rupk_profile_address');
+        echo '<label class="rupk-field"><span>Адрес оператора</span><input type="text" name="operator_address" value="'.esc_attr(self::optional_text('address',(string)$c['operator']['address'])).'" maxlength="500" autocomplete="street-address"></label>';
+        self::check('operator_address_public','Публиковать адрес оператора в юридических документах',!empty($c['operator_address_public']));
+        echo '<p class="description">Для физлица и ИП по умолчанию выключено. Если включить, адрес появится на автоматически созданных страницах сразу после сохранения, без перепубликации. Условия коммерческих сайтов могут требовать отдельной проверки.</p>';
+        submit_button('Сохранить адрес и видимость','primary','submit',false);
+        echo '</form></div>';
         echo '<div class="rupk-panel"><h2>Экспорт — скачать профиль</h2><p>JSON сохранится на вашем компьютере. По умолчанию домашний/почтовый адрес и email поддержки не экспортируются.</p>';
         echo '<form method="post" action="'.esc_url(admin_url('admin-post.php')).'"><input type="hidden" name="action" value="rupk_profile_export">'; wp_nonce_field('rupk_profile_export');
         self::check('with_address','Включить адрес (чувствительные сведения)',false);
