@@ -197,9 +197,11 @@ final class RUPK_Documents {
         foreach (self::labels() as $key=>$label) {
             if ($key==='offer' && empty($c['commercial']['paid'])) { continue; }
             $id=(int)$docs[$key];
-            if ($id && get_post($id)) { continue; }
+            $bound=$id?get_post($id):null;
+            if ($bound && $bound->post_type==='page' && !in_array($bound->post_status,['trash','auto-draft'],true)) { continue; }
             // Never replace an existing page with the same slug.
             $existing=get_page_by_path(self::slug($key));
+            if ($existing && in_array($existing->post_status,['trash','auto-draft'],true)) { $existing=null; }
             if ($existing) { $created[$key]='Существующая страница не изменена. Её можно привязать вручную.'; continue; }
             $insert=wp_insert_post(['post_type'=>'page','post_status'=>'draft','post_title'=>$label,'post_name'=>self::slug($key),'post_content'=>self::build($key,$c),'post_author'=>get_current_user_id()],true);
             if (!is_wp_error($insert)) { $docs[$key]=$insert; self::track_generated((int)$insert,$c); $created[$key]='Создан черновик #'.$insert; }

@@ -17,22 +17,26 @@ final class RUPK_Publisher {
         foreach (self::types($cfg) as $type) {
             $id=(int)($cfg['documents'][$type]??0);
             $post=$id?get_post($id):null;
-            if ($id && (!$post || $post->post_type!=='page')) {
-                $errors[]='Страница «'.RUPK_Documents::labels()[$type].'» недоступна. Проверьте её привязку в разделе документов.';
-                continue;
+            // A deleted (trashed) or permanently removed page must not poison the configuration.
+            // The old numeric ID is discarded for planning; finish() will atomically rebind a
+            // newly published page without overwriting any unrelated page at the old URL.
+            if ($id && (!$post || $post->post_type!=='page' || in_array($post->post_status,['trash','auto-draft'],true))) {
+                $id=0;
+                $post=null;
             }
             if (!$post && $type==='privacy' && $stock_id) {
                 $id=$stock_id; $post=get_post($stock_id);
             }
             if (!$post) {
                 $existing=get_page_by_path(RUPK_Documents::slug($type),'OBJECT','page');
+                if ($existing && in_array($existing->post_status,['trash','auto-draft'],true)) { $existing=null; }
                 if ($existing && $type==='privacy' && RUPK_Documents::is_wp_suggested_policy($existing->post_content)) {
                     $jobs[$type]=['action'=>'replace_stock','id'=>(int)$existing->ID,'title'=>RUPK_Documents::labels()[$type]];
                     continue;
                 }
                 if ($existing) {
                     // An unassigned path collision must never cause an overwrite.
-                    $errors[]='Адрес «'.RUPK_Documents::slug($type).'» занят другой страницей. Привяжите её вручную или освободите адрес.';
+                    $errors[]='По адресу «'.RUPK_Documents::slug($type).'» уже есть другая страница. Привяжите её в разделе документов либо выберите для неё другой адрес. Чужую страницу плагин не перезапишет.';
                     continue;
                 }
                 $jobs[$type]=['action'=>'create','id'=>0,'title'=>RUPK_Documents::labels()[$type]];

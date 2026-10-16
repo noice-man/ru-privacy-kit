@@ -7,7 +7,13 @@ final class RUPK_Front {
         add_action('wp_footer',[self::class,'render'],80);
     }
     private static function live(array $c): bool {
-        return !is_admin() && !wp_doing_ajax() && !empty($c['enabled']) && !empty($c['complete']);
+        if (is_admin() || wp_doing_ajax() || empty($c['enabled']) || empty($c['complete'])) { return false; }
+        // If a visitor-facing legal page was deleted or unpublished, avoid rendering a
+        // banner with dead links or injecting managed trackers until re-publication.
+        foreach (RUPK_Publisher::types($c) as $type) {
+            if (!RUPK_Documents::url($type,$c)) { return false; }
+        }
+        return true;
     }
     public static function early_guards(): void {
         $c=RUPK_Core::config(); if (!self::live($c)) { return; }

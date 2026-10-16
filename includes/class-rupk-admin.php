@@ -28,8 +28,17 @@ final class RUPK_Admin {
     public static function notice(): void {
         if (!current_user_can('manage_options')) { return; }
         $c=RUPK_Core::config();
-        if ($c['complete']) { return; }
         if (isset($_GET['page']) && strpos(sanitize_key(wp_unslash($_GET['page'])),'rupk')===0) { return; }
+        if (!empty($c['complete']) && !empty($c['enabled'])) {
+            foreach (RUPK_Publisher::types($c) as $type) {
+                if (!RUPK_Documents::url($type,$c)) {
+                    echo '<div class="notice notice-warning"><p><strong>RU Privacy Kit:</strong> юридическая страница удалена или не опубликована. Cookie-баннер и управляемая аналитика временно не выводятся. <a href="'.esc_url(admin_url('admin.php?page=rupk-documents')).'">Восстановить страницы</a>.</p></div>';
+                    break;
+                }
+            }
+            return;
+        }
+        if ($c['complete']) { return; }
         echo '<div class="notice notice-info"><p><strong>RU Privacy Kit:</strong> закончите подготовку документов и настройте cookie-баннер. До подтверждения документов плагин не включает новый баннер и управляемые счётчики. <a class="button button-primary" href="'.esc_url(admin_url('admin.php?page=rupk-wizard')).'">Запустить мастер</a></p></div>';
     }
     private static function header(string $title,string $lead=''): void {
@@ -417,18 +426,6 @@ final class RUPK_Admin {
         }
         return $stale;
     }
-    private static function document_blockers(array $c): array {
-        $blocked=[];
-        foreach (self::required_documents($c) as $type) {
-            $id=(int)($c['documents'][$type]??0); $page=$id?get_post($id):null;
-            if (!$page || get_post_type($id)!=='page') {
-                $blocked[]=['title'=>'Нет страницы: '.RUPK_Documents::labels()[$type], 'detail'=>'Создайте черновик в мастере или привяжите существующую страницу WordPress.','url'=>admin_url('admin.php?page=rupk-wizard&step=8'),'action'=>'Создать'];
-            } elseif ((string)get_post_meta($id,'_rupk_generated_revision',true)==='' && get_post_status($id)!=='publish') {
-                $blocked[]=['title'=>'Не опубликована: '.RUPK_Documents::labels()[$type], 'detail'=>'Вы привязали собственную страницу. Плагин не публикует и не перезаписывает её автоматически.','url'=>get_edit_post_link($id),'action'=>'Открыть страницу'];
-            }
-        }
-        return $blocked;
-    }
     public static function documents(): void {
         $c=RUPK_Core::config(); self::header('Юридические документы','Документы, созданные RU Privacy Kit, всегда выводят актуальные сведения из настроек. Ручные страницы остаются без изменений.');
         echo '<span id="rupk-publish-check" tabindex="-1"></span>';
@@ -436,23 +433,39 @@ final class RUPK_Admin {
         $plan=RUPK_Publisher::plan($c);
         $stale=self::generated_stale($c);
         if ($todo || $plan['errors']) {
-            echo '<section class="rupk-panel rupk-blockers" aria-labelledby="rupk-publish-heading"><h2 id="rupk-publish-heading">Пока нельзя включить баннер</h2>';
-            echo '<p>Это не ошибка ваших галочек. Не завершены '.count($todo).' '.esc_html(self::plural(count($todo),['обязательный пункт','обязательных пункта','обязательных пунктов'])).' настроек и '.count($blocked).' '.esc_html(self::plural(count($blocked),['вопрос по документу','вопроса по документам','вопросов по документам'])).'. Перейдите по ссылкам, сохраните исправления и вернитесь сюда. Черновики останутся на месте.</p>';
+            $nTodo=count($todo); $nErrors=count($plan['errors']);
+            echo '<section class="rupk-panel rupk-blockers" aria-labelledby="rupk-publish-heading"><h2 id="rupk-publish-heading">Для публикации нужны исправления</h2>';
+            echo '<p>Незавершённых настроек: '.(int)$nTodo.'; вопросов по страницам: '.(int)$nErrors.'. Ниже указаны конкретные действия. Ранее введённые настройки сохраняются.</p>';
             echo '<div class="rupk-review-items">';
             foreach ($todo as $item) { self::review_row($item,'todo'); }
             foreach ($plan['errors'] as $reason) { echo '<div class="rupk-review-row"><span class="rupk-review-symbol">!</span><div><strong>'.esc_html($reason).'</strong></div><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">Исправить</a></div>'; }
             echo '</div><p><a class="button" href="'.esc_url(admin_url('admin.php?page=rupk-wizard&step=8')).'">Открыть итоговую проверку мастера</a></p></section>';
         } else {
-            echo '<div class="notice notice-success inline rupk-doc-ready"><p><strong>Настройки готовы к публикации.</strong> Опубликованные документы обновляют сведения автоматически. Если вы вручную редактировали документ, его текст защищён от замены.</p></div>';
+            echo '<div class="notice notice-success inline rupk-doc-ready"><p><strong>Настройки готовы.</strong> Документы, созданные плагином, отображают актуальные сведения автоматически. Вручную изменённые тексты защищены от перезаписи.</p></div>';
+        }
+        $missing=[];
+        foreach (self::required_documents($c) as $type) {
+            $id=(int)($c['documents'][$type]??0);
+            if (!$id) { continue; }
+            $bound=get_post($id);
+            if (!$bound || $bound->post_type!=='page' || in_array($bound->post_status,['trash','auto-draft'],true)) {
+                $missing[]=$type;
+            }
+        }
+        if ($missing && !$plan['errors']) {
+            $labels=array_map(static fn(string $type): string => RUPK_Documents::labels()[$type],$missing);
+            echo '<div class="notice notice-warning inline"><p><strong>Удалённые страницы обнаружены:</strong> '.esc_html(implode(', ',$labels)).'. Плагин может создать вместо них новые страницы, автоматически обновить ссылки и назначить страницу политики ПДн в WordPress. <strong>Используй форму публикации ниже</strong>; повторять настройку не требуется.</p></div>';
         }
         echo '<div class="rupk-panel"><table class="widefat striped"><thead><tr><th>Документ</th><th>Страница</th><th>Действия</th></tr></thead><tbody>';
         foreach (RUPK_Documents::labels() as $key=>$label) {
             if ($key==='offer' && !$c['commercial']['paid']) { continue; }
             $id=(int)$c['documents'][$key]; $p=$id?get_post($id):null;
-            echo '<tr><td><strong>'.esc_html($label).'</strong></td><td>'.($p?esc_html($p->post_status).' · #'.$id:'Не привязана').'</td><td>';
+            $deleted=$id && (!$p || $p->post_type!=='page' || in_array($p->post_status,['trash','auto-draft'],true));
+            if ($deleted) { $p=null; }
+            echo '<tr><td><strong>'.esc_html($label).'</strong></td><td>'.($p?esc_html($p->post_status).' · #'.$id:($deleted?'Удалена (#'.$id.'). Будет создана заново.':'Не привязана')).'</td><td>';
             if ($p) {
                 echo '<a href="'.esc_url(get_edit_post_link($id)).'">Редактировать</a> · <a href="'.esc_url(get_preview_post_link($p)).'" target="_blank" rel="noopener">Посмотреть</a>';
-            } else { echo 'Создайте черновик либо привяжите свою страницу'; }
+            } else { echo $deleted?'Можно восстановить при публикации ниже.':'Можно создать страницу или привязать собственную.'; }
             if ($p && isset($stale[$key])) {
                 echo '<p class="rupk-outdated"><strong>Эта страница редактировалась вручную: для возврата к автоматическому тексту потребуется ваше подтверждение.</strong></p>';
                 if (function_exists('wp_text_diff')) {
@@ -483,7 +496,7 @@ final class RUPK_Admin {
             }
             if ($plan['edited']) { self::checkbox('overwrite_edited','Разрешаю заменить вручную изменённый текст в ранее созданных плагином страницах',false); }
             if ($plan['stock_id'] || self::plan_has_stock($plan)) { self::checkbox('replace_stock','Разрешаю заменить стандартную политику WordPress и убрать старую страницу-подсказку из публичного доступа',false); }
-            submit_button('Опубликовать проверенные документы и включить баннер','primary');
+            submit_button($missing?'Восстановить страницы и сохранить публикацию':'Опубликовать проверенные документы и включить баннер','primary');
             echo '</form>';
         }
         echo '</div>'; self::footer();
