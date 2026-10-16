@@ -48,7 +48,7 @@ final class RUPK_Documents {
             foreach (self::purpose_map() as $id=>$v) { if (in_array($id,$c['purposes'],true)) {
                 $t.='<tr><td>'.esc_html($v[0]).'</td><td>'.esc_html($v[1]).'</td><td>'.esc_html($v[2]).'</td><td>'.esc_html($c['data']['retention']).'</td></tr>';
             } }
-            if (!empty($c['services']['yandex']) || !empty($c['services']['google'])) {
+            if (!empty($c['services']['yandex']) || !empty($c['services']['google']) || !empty($c['services']['sberads'])) {
                 $t.='<tr><td>Анализ посещаемости</td><td>Посетители; сетевые, технические сведения и идентификаторы (в зависимости от сервиса)</td><td>'.esc_html($c['analytics_mode']==='strict'?'Согласие посетителя': self::analytics_basis_text($c)).'</td><td>'.esc_html($c['data']['retention']).'</td></tr>';
             }
             $t.='</tbody></table>';
@@ -105,7 +105,7 @@ final class RUPK_Documents {
     }
     private static function analytics_basis_text(array $c): string {
         $bases = [];
-        foreach (['yandex','google'] as $id) {
+        foreach (['yandex','google','sberads'] as $id) {
             if (empty($c['services'][$id])) { continue; }
             if (($c['analytics_mode'] === 'optout' || ($c['analytics_mode'] === 'advanced' && $id === 'google')) && RUPK_Core::basis_confirmed($c,$id)) {
                 $basis = $c['legal'][$id]['basis'] ?? '';
@@ -133,7 +133,7 @@ final class RUPK_Documents {
         $active=RUPK_Core::active_services($c);
         if (!$active) { return '<p>Для работы сайта используются необходимые технологии. Дополнительные аналитические и рекламные сервисы в настройках сайта не указаны.</p>'; }
         $descriptions = [
-            'yandex'=>'анализ посещаемости', 'google'=>'анализ посещаемости',
+            'yandex'=>'анализ посещаемости', 'google'=>'анализ посещаемости', 'sberads'=>'статистика посещаемости и анализ поведения',
             'gtm'=>'управление кодами внешних сервисов', 'vk'=>'рекламная аналитика',
             'local'=>'статистика посещаемости', 'captcha'=>'защита форм от автоматических обращений',
             'video'=>'отображение встраиваемого содержимого', 'custom'=>'дополнительные функции сайта',

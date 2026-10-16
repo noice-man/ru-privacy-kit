@@ -10,9 +10,9 @@ final class RUPK_Core {
             'operator' => ['name'=>'','inn'=>'','ogrn'=>'','address'=>'','email'=>get_option('admin_email',''), 'support'=>get_option('admin_email','')],
             'purposes' => ['feedback'],
             'data' => ['hosting'=>'unknown','retention'=>'До достижения целей обработки либо в сроки, предусмотренные законодательством РФ','security'=>'','crossborder'=>'unknown'],
-            'services' => ['yandex'=>false,'google'=>false,'gtm'=>false,'vk'=>false,'local'=>false,'captcha'=>false,'video'=>false,'custom'=>false],
-            'yandex_id'=>'', 'google_id'=>'', 'gtm_id'=>'', 'cookie_inventory'=>'', 'inventory_reviewed'=>false,
-            'legal' => ['yandex'=>['basis'=>'','purpose'=>'','details'=>'','confirmed'=>false], 'google'=>['basis'=>'','purpose'=>'','details'=>'','confirmed'=>false]],
+            'services' => ['yandex'=>false,'google'=>false,'sberads'=>false,'gtm'=>false,'vk'=>false,'local'=>false,'captcha'=>false,'video'=>false,'custom'=>false],
+            'yandex_id'=>'', 'google_id'=>'', 'sberads_id'=>'', 'gtm_id'=>'', 'cookie_inventory'=>'', 'inventory_reviewed'=>false,
+            'legal' => ['yandex'=>['basis'=>'','purpose'=>'','details'=>'','confirmed'=>false], 'google'=>['basis'=>'','purpose'=>'','details'=>'','confirmed'=>false], 'sberads'=>['basis'=>'','purpose'=>'','details'=>'','confirmed'=>false]],
             'commercial'=>['paid'=>false,'kind'=>'saas','subject'=>'','price'=>'','accept'=>'','delivery'=>'','refund'=>'','support'=>''],
             'design'=>['layout'=>'bottom','theme'=>'inherit','bg'=>'','text'=>'','accent'=>'','radius'=>14,'floating_link'=>true,'retention_days'=>180],
             'documents'=>['cookie'=>0,'privacy'=>0,'terms'=>0,'offer'=>0],
@@ -50,7 +50,7 @@ final class RUPK_Core {
         update_option(self::OPTION,$updated,false);
     }
     private static function relevant(array $cfg): string {
-        $keys=['analytics_mode','operator_kind','operator','site_kind','purposes','data','services','yandex_id','google_id','gtm_id','cookie_inventory','inventory_reviewed','legal','commercial'];
+        $keys=['analytics_mode','operator_kind','operator','site_kind','purposes','data','services','yandex_id','google_id','sberads_id','gtm_id','cookie_inventory','inventory_reviewed','legal','commercial'];
         $out=[];
         foreach ($keys as $k) { $out[$k] = $cfg[$k] ?? null; }
         return wp_json_encode($out);
@@ -64,6 +64,7 @@ final class RUPK_Core {
         return [
             'yandex'=>['label'=>'Яндекс Метрика','provider'=>'ООО «Яндекс»','category'=>'analytics','policy'=>'https://yandex.ru/legal/confidential/'],
             'google'=>['label'=>'Google Analytics 4','provider'=>'Google','category'=>'analytics','policy'=>'https://policies.google.com/privacy'],
+            'sberads'=>['label'=>'Статистика от SberAds (Рамблер/Топ-100)','provider'=>'ООО «РА «Индекс 20»','category'=>'analytics','policy'=>'https://github.com/stat-sberads/documentation'],
             'gtm'=>['label'=>'Google Tag Manager (внешний контейнер)','provider'=>'Google','category'=>'unmanaged','policy'=>'https://policies.google.com/privacy'],
             'vk'=>['label'=>'VK Реклама / пиксель','provider'=>'VK','category'=>'unmanaged','policy'=>'https://vk.com/privacy'],
             'local'=>['label'=>'Локальная статистика','provider'=>'Владелец сайта / установленный плагин','category'=>'unmanaged','policy'=>''],
@@ -76,6 +77,7 @@ final class RUPK_Core {
         if (empty($c['services'][$id])) { return false; }
         if ($id==='yandex') { return preg_match('/^\d{4,12}$/D',(string)$c['yandex_id']) === 1; }
         if ($id==='google') { return preg_match('/^G-[A-Z0-9]{5,20}$/D',(string)$c['google_id']) === 1; }
+        if ($id==='sberads') { return preg_match('/^[0-9]{1,20}$/D',(string)$c['sberads_id']) === 1; }
         return false;
     }
     public static function basis_confirmed(array $c,string $id): bool {
@@ -98,7 +100,7 @@ final class RUPK_Core {
         if (!is_email((string)$c['operator']['email'])) {
             $push('todo','Укажите контакт для обращений по ПДн','Нужен действующий адрес электронной почты.',1);
         }
-        foreach (['yandex','google'] as $id) {
+        foreach (['yandex','google','sberads'] as $id) {
             if (empty($c['services'][$id])) { continue; }
             $label=self::registry()[$id]['label'];
             if (!self::managed($c,$id)) {
@@ -150,7 +152,7 @@ final class RUPK_Core {
             $push('review','Внешние сервисы требуют ручной проверки',
                 'Вы выбрали: '.implode(', ',$unmanaged).'. Плагин не может гарантировать блокировку скриптов, добавленных темой, другим плагином или контейнером тегов.',3);
         }
-        if (!empty($c['services']['yandex']) || !empty($c['services']['google'])) {
+        if (!empty($c['services']['yandex']) || !empty($c['services']['google']) || !empty($c['services']['sberads'])) {
             $push('review','Проверьте отсутствие дублирующих счётчиков',
                 'Убедитесь через DevTools → Network, что тот же счётчик не запускается дополнительно через тему, GTM или другой плагин.',3);
         }
