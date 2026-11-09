@@ -1,0 +1,19 @@
+name: Validate RU Privacy Kit
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feat/ga-gtm-privacy-warnings]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP syntax
+        run: find . -path './.git' -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+      - name: JavaScript syntax
+        run: node --check assets/js/admin.js && node --check assets/js/front.js
+      - name: Version consistency
+        run: grep -Fq 'Version: 1.0.0-beta.14' ru-privacy-kit.php && grep -Fqx 'Stable tag: 1.0.0-beta.14' readme.txt
