@@ -188,3 +188,16 @@
 @media(max-width:840px){.rupk-tracker-grid{grid-template-columns:1fr}}
 .rupk-schematic-micro i{left:3px;right:3px;bottom:2px;height:14px;border-width:2px}
 .rupk-preview-shell #rupk-root.rupk-layout-micro .rupk-banner{position:absolute;left:8px!important;right:8px!important;bottom:8px!important;width:calc(100% - 16px);}
+
+/* Foreign Google service legal risk notices */
+.rupk-legal-alert{margin:12px 0 14px;padding:14px 16px;border:1px solid;border-left-width:5px;border-radius:10px;line-height:1.55;font-size:13px}
+.rupk-legal-alert p{margin:6px 0;color:#334155}
+.rupk-legal-alert p:last-child{margin-bottom:0}
+.rupk-legal-alert-heading{font-weight:750;font-size:14px!important}
+.rupk-legal-alert-danger{background:#fff1f0;border-color:#dc4b45}
+.rupk-legal-alert-danger .rupk-legal-alert-heading{color:#a3231e}
+.rupk-legal-alert-warning{background:#fff8e8;border-color:#d69b25}
+.rupk-legal-alert-warning .rupk-legal-alert-heading{color:#80520a}
+.rupk-legal-alert-links{font-size:12px}
+.rupk-legal-alert a{font-weight:650;text-decoration:underline}
+.rupk-service-choice .rupk-legal-alert{max-width:100%}
