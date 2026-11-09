@@ -6,6 +6,11 @@
       ['commercial_kind','commercial[subject]','commercial[price]','commercial[accept]','commercial[delivery]','commercial[refund]','commercial[support]']
         .forEach(function(name){var f=document.querySelector('[name="'+name+'"]');if(f&&f.closest('.rupk-field'))f.closest('.rupk-field').hidden=!paid.checked;});
     }
+    document.querySelectorAll('[data-rupk-service-warning]').forEach(function(block){
+      var id=block.getAttribute('data-rupk-service-warning');
+      var checkbox=document.querySelector('input[name="services['+id+']"]');
+      block.hidden=!checkbox || !checkbox.checked;
+    });
     document.querySelectorAll('[data-rupk-service-field]').forEach(function(block){
       var id=block.getAttribute('data-rupk-service-field');
       var checkbox=document.querySelector('input[name="services['+id+']"]');

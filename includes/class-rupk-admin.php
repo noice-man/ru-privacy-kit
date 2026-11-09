@@ -76,6 +76,29 @@ final class RUPK_Admin {
     private static function checkbox(string $name,string $label,bool $checked,string $help=''): void {
         echo '<label class="rupk-check"><input type="checkbox" name="'.esc_attr($name).'" value="1"'.checked($checked,true,false).'> <span><strong>'.esc_html($label).'</strong>'.($help?'<small>'.esc_html($help).'</small>':'').'</span></label>';
     }
+    /**
+     * Contextual legal risk notices for foreign Google services.
+     * The notice is deliberately different for GA4 (analytics/data collection)
+     * and GTM (a tag container whose actual data flows depend on its tags).
+     */
+    private static function service_legal_warning(string $id,bool $selected): void {
+        if (!in_array($id,['google','gtm'],true)) { return; }
+        $is_ga4=$id==='google';
+        $service=$is_ga4?'Google Analytics 4':'Google Tag Manager';
+        echo '<aside class="rupk-legal-alert rupk-legal-alert-danger" data-rupk-service-warning="'.esc_attr($id).'" role="alert" aria-live="polite"'.(!$selected?' hidden':'').'>';
+        echo '<p class="rupk-legal-alert-heading">ВЫСОКИЙ ПРАВОВОЙ РИСК: '.esc_html($service).' на сайте, собирающем персональные данные граждан РФ</p>';
+        if ($is_ga4) {
+            echo '<p>Минцифры России в письме от 12.05.2025 № П25-44929 указало, что использование Google Analytics, функционал которого предполагает обработку персональных данных, является трансграничной передачей. Часть 5 статьи 18 152-ФЗ ограничивает при сборе персональных данных граждан РФ запись, систематизацию, накопление, хранение, уточнение и извлечение с использованием баз данных за пределами России, за исключением прямо установленных законом случаев.</p>';
+            echo '<p><strong>Практический вывод:</strong> использование GA4 на таком сайте может повлечь претензии по требованиям о локализации и трансграничной передаче. Не рассчитывайте, что cookie-согласие или уведомление о трансграничной передаче сами по себе устраняют риск.</p>';
+        } else {
+            echo '<p>GTM технически является контейнером тегов, а не самой системой аналитики. Однако его загрузка связана с инфраструктурой Google, а фактические данные и получатели зависят от контейнера и подключённых тегов. Нельзя гарантировать, что проверяющий орган будет разграничивать GTM и GA4 именно так, как это разграничено технически, или сочтёт использование GTM без GA4 допустимым.</p>';
+            echo '<p><strong>Практический вывод:</strong> не полагайтесь на аргумент «это только контейнер, а не Google Analytics». Использование GTM на сайте, собирающем персональные данные граждан РФ, также следует считать высоким правовым риском. RU Privacy Kit не проверяет состав контейнера и не блокирует внешние GTM-скрипты.</p>';
+        }
+        echo '<p><strong>Консервативная рекомендация:</strong> если сайт собирает персональные данные граждан РФ и задача — минимизировать риск претензий, не используйте ни GA4, ни GTM. Выбирайте инструменты, для которых можно подтвердить местонахождение баз данных, фактических получателей и соблюдение требований российского законодательства.</p>';
+        echo '<p><strong>Отказ от ответственности:</strong> это информационное предупреждение о риске, а не юридическая консультация, заключение о конкретной конфигурации или гарантия правомерности/неправомерности её использования. Разработчик RU Privacy Kit не проводит аудит аккаунта Google, контейнера GTM, подключённых тегов, сетевых запросов и инфраструктуры поставщиков; не гарантирует, что Роскомнадзор разграничит GTM и GA4 или не предъявит претензии. Решение об использовании сервиса, проверка фактических потоков данных, правовых оснований, локализации и трансграничной передачи остаются ответственностью оператора сайта. Наличие этого предупреждения, согласие посетителя или использование cookie-баннера не подтверждают законность обработки и не освобождают оператора от ответственности, установленной законом.</p>';
+        echo '<p class="rupk-legal-alert-links"><a href="https://www.consultant.ru/document/cons_doc_LAW_511584/" target="_blank" rel="noopener noreferrer">Письмо Минцифры № П25-44929</a> · <a href="https://www.consultant.ru/document/cons_doc_LAW_61801/" target="_blank" rel="noopener noreferrer">152-ФЗ: статьи 12 и 18</a></p>';
+        echo '</aside>';
+    }
     private static function form_start(int $step=0): void {
         echo '<form action="'.esc_url(admin_url('admin-post.php')).'" method="post"><input type="hidden" name="action" value="rupk_save"><input type="hidden" name="step" value="'.(int)$step.'">';
         wp_nonce_field('rupk_save_'.$step);
@@ -128,6 +151,7 @@ final class RUPK_Admin {
                         'Установленный извне скрипт плагин пока не блокирует: потребуется отдельная проверка.';
                     echo '<div class="rupk-service-choice">';
                     self::checkbox('services['.$id.']',$svc['label'],!empty($c['services'][$id]),$helper);
+                    self::service_legal_warning($id,!empty($c['services'][$id]));
                     echo '</div>';
                 }
                 echo '</div></section>';
@@ -141,7 +165,7 @@ final class RUPK_Admin {
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="vk">';
             self::field('vk_id','ID пикселя VK Рекламы',$c['vk_id'],'text','Только цифры из кабинета VK Рекламы → Сайты → Пиксель. Скрипт загружается только после согласия на маркетинг.');
             echo '</div><div class="rupk-service-fields" data-rupk-service-field="gtm">';
-            self::field('gtm_id','Номер контейнера Google Tag Manager',$c['gtm_id'],'text','Вид GTM-XXXXXX. В beta.2 контейнер не загружается и не блокируется плагином.');
+            self::field('gtm_id','Номер контейнера Google Tag Manager',$c['gtm_id'],'text','Вид GTM-XXXXXX. Контейнер не загружается и не блокируется плагином; проверяйте его теги и сетевые запросы отдельно.');
             echo '</div>';
             self::cookie_inventory_fields($c);
             self::form_end(3);
@@ -394,6 +418,7 @@ final class RUPK_Admin {
             echo '<section class="rupk-tracker-card" data-rupk-tracker="'.esc_attr($id).'">';
             echo '<h3>'.esc_html($tool['Название']).'</h3><p>'.esc_html($tool['Описание']).'</p>';
             self::checkbox('services['.$id.']','Устанавливать через RU Privacy Kit',!empty($c['services'][$id]),'Внешний код этого же счётчика нужно отключить, чтобы не удваивать статистику.');
+            self::service_legal_warning($id,!empty($c['services'][$id]));
             echo '<div data-rupk-tracker-id="'.esc_attr($id).'">';
             self::field($tool['field'],$tool['label'],$c[$tool['field']],'text',$tool['hint']);
             echo '</div>';
